@@ -86,7 +86,7 @@ def eh_horario(valor):
     return 0 <= h < 24 and 0 <= m < 60
 
 # =========================
-# App Streamlit
+# Streamlit App
 # =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
@@ -117,7 +117,7 @@ with tab1:
     
     if uploaded_file:
         st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
-        
+
         lista_temas_mestra = [
             "FALTA SEM JUSTIFICATIVA",
             "ABONO DE HORAS",
@@ -130,7 +130,7 @@ with tab1:
         
         dados_funcionarios = []
         detalhes = []
-        
+
         with pdfplumber.open(uploaded_file) as pdf:
             for i, pagina in enumerate(pdf.pages):
                 texto = pagina.extract_text()
@@ -242,21 +242,65 @@ with tab1:
                         }
                         detalhes.append(registro)
 
-        # Criação DataFrames
+        # =========================
+        # Criação DataFrames completos
+        # =========================
         df = pd.DataFrame(dados_funcionarios).fillna(0)
         df_detalhe = pd.DataFrame(detalhes)
 
-        # Consolidado sem justificativas
+        # -------------------------------
+        # Situação do dia
+        # -------------------------------
+        for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+            df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
+
+        def determinar_situacao(row):
+            valores = [limpa_valor(row[c]) for c in ["ent_1","sai_1","ent_2","sai_2"]]
+            textos = [v for v in valores if v and not eh_horario(v)]
+            if textos:
+                return textos[0].upper()
+            horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
+            if all(horarios_validos):
+                return "Dia normal de trabalho"
+            if any(horarios_validos):
+                return "Presença parcial"
+            return "Dia incompleto"
+
+        df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
+        df_detalhe.drop(columns=["ent_1_valido","sai_1_valido","ent_2_valido","sai_2_valido"], inplace=True)
+
+        # -------------------------------
+        # Correção de "-" e coluna "correção"
+        # -------------------------------
+        df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
+
+        def pegar_correcao(row):
+            for col in ["ent_1","sai_1","ent_2","sai_2"]:
+                val = limpa_valor(row.get(col))
+                if val:
+                    return val
+            return ""
+        df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
+
+        # Substituir horários na Situação pelo valor da correção
+        df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
+
+        # -------------------------------
+        # Contagem de situações
+        # -------------------------------
+        situacoes_unicas = df_detalhe["Situação"].unique()
+        for sit in situacoes_unicas:
+            df_detalhe[f"Qtd - {sit}"] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x==sit).sum())
+
+        # -------------------------------
+        # Download em memória
+        # -------------------------------
+        output_consolidado = BytesIO()
         colunas_justificativas = [
             "FALTA SEM JUSTIFICATIVA", "ABONO DE HORAS", "DECLARAÇÃO DE HORAS",
             "AJUSTE DE HORAS", "ATESTADO MÉDICO", "FOLGA HABILITADA", "SAÍDA ANTECIPADA"
         ]
         df_consolidado = df.drop(columns=colunas_justificativas)
-
-        # =========================
-        # Download em memória
-        # =========================
-        output_consolidado = BytesIO()
         df_consolidado.to_excel(output_consolidado, index=False)
         output_consolidado.seek(0)
 
@@ -270,7 +314,6 @@ with tab1:
             file_name="consolidado_blitz.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
         st.download_button(
             label="⬇️ Baixar detalhe_funcionarios.xlsx",
             data=output_detalhe,
