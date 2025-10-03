@@ -104,7 +104,7 @@ if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
 
     st.markdown(
-        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", 
+        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>",
         unsafe_allow_html=True
     )
     st.markdown(
@@ -112,7 +112,7 @@ if not st.session_state.iniciado:
         "Este aplicativo processa apontamentos de funcionários em PDF, "
         "aplica regras de validação de horários e situações, "
         "e gera relatórios finais prontos para análise."
-        "</p>", 
+        "</p>",
         unsafe_allow_html=True
     )
 
@@ -122,14 +122,12 @@ if not st.session_state.iniciado:
     with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
-            st.experimental_rerun()
+            # Não usar st.experimental_rerun(), apenas a flag inicia o app no próximo rerun
 
 # =========================
 # Resto do app só roda depois de iniciar
 # =========================
 else:
-    st.write("App iniciado! Pode continuar com o restante do código...")
-
     # =========================
     # Criação de abas
     # =========================
@@ -185,9 +183,7 @@ else:
                     for tema in lista_temas_mestra:
                         funcionario[tema] = 0
 
-                    # -------------------------
                     # Cabeçalho
-                    # -------------------------
                     for linha in linhas:
                         if "NOME DO FUNCIONÁRIO:" in linha:
                             funcionario["nome"] = linha.split("NOME DO FUNCIONÁRIO:")[-1].split("CPF")[0].strip()
@@ -199,9 +195,7 @@ else:
                         elif "NOME DO CENTRO DE CUSTO:" in linha:
                             funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip()
 
-                    # -------------------------
                     # Totais tabela
-                    # -------------------------
                     if tabela:
                         cabecalho = tabela[0]
                         for linha_tabela in tabela:
@@ -216,9 +210,7 @@ else:
                         if funcionario["extra_50"] == funcionario["horas_previstas"]:
                             funcionario["extra_50"] = "00:00"
 
-                    # -------------------------
                     # Alterações / justificativas
-                    # -------------------------
                     encontrou_alteracoes = False
                     for linha_texto in linhas:
                         linha_clean = limpar_texto(linha_texto)
@@ -237,9 +229,7 @@ else:
                         if tema_encontrado:
                             funcionario[tema_encontrado] += 1
 
-                    # -------------------------
                     # Status OK/NOK
-                    # -------------------------
                     if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
                         funcionario["status"] = "NOK"
                     else:
@@ -247,9 +237,7 @@ else:
 
                     dados_funcionarios.append(funcionario)
 
-                    # -------------------------
                     # Detalhe diário
-                    # -------------------------
                     if tabela:
                         for linha_detalhe in tabela[1:]:
                             linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
@@ -284,14 +272,10 @@ else:
             # =========================
             df = pd.DataFrame(dados_funcionarios).fillna(0)
             df_detalhe = pd.DataFrame(detalhes)
-
-            # Consolidado sem justificativas
             colunas_justificativas = lista_temas_mestra
             df_consolidado = df.drop(columns=colunas_justificativas)
 
-            # -------------------------------
             # Validações e regras do df_detalhe
-            # -------------------------------
             valores_validacao = []
             for _, row in df_detalhe.iterrows():
                 total_minutos = (
@@ -299,16 +283,13 @@ else:
                     hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
                 )
                 previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
-
                 if total_minutos > previsto_minutos:
                     status = "Carga Horaria Completa - Fez Hora Extra"
                 elif total_minutos == previsto_minutos:
                     status = "Carga Horaria Completa"
                 else:
                     status = "Carga Horaria Incompleta"
-
                 valores_validacao.append(status)
-
             df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
             # Situação do dia
@@ -335,7 +316,8 @@ else:
             def reavaliar_situacao(row):
                 if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
                     return "Dia normal de trabalho"
-                entradas_saidas = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")), limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
+                entradas_saidas = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")),
+                                   limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
                 if all(v == "" for v in entradas_saidas):
                     return "Dia não previsto"
                 textos = [v for v in entradas_saidas if v and not eh_horario(v)]
