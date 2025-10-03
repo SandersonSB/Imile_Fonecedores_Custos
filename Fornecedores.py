@@ -9,6 +9,8 @@ import re
 from difflib import SequenceMatcher
 from io import BytesIO
 import numpy as np
+from streamlit_lottie import st_lottie
+import requests
 
 # =========================
 # Funções auxiliares
@@ -86,24 +88,59 @@ def eh_horario(valor):
     return 0 <= h < 24 and 0 <= m < 60
 
 # =========================
+# FUNÇÃO PARA CARREGAR ANIMAÇÃO LOTTIE
+# =========================
+def carregar_animacao(url):
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+    return response.json()
+
+# Coloque aqui a URL da animação que você criou
+animacao_url = "COLE_AQUI_O_LINK_DA_ANIMACAO_LOTTIE"
+animacao = carregar_animacao(animacao_url)
+
+# =========================
 # Configuração da página
 # =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
+# =========================
+# TELA INICIAL PROFISSIONAL
+# =========================
 if "start" not in st.session_state:
     st.session_state.start = False
 
 if not st.session_state.start:
-    st.title("📊 Sistema de Processamento de Dados de Fornecedores")
+    # Título e descrição centralizados
     st.markdown(
+        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", 
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "<p style='text-align: center; color: #34495E; font-size:18px;'>"
         "Este aplicativo processa apontamentos de funcionários em PDF, "
         "aplica regras de validação de horários e situações, "
         "e gera relatórios finais prontos para análise."
+        "</p>", 
+        unsafe_allow_html=True
     )
-    if st.button("Iniciar"):
-        st.session_state.start = True
-    st.stop()
+    
+    # Exibe animação centralizada
+    if animacao:
+        st_lottie(animacao, height=300, key="animacao")
 
+    # Botão centralizado
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if st.button("Iniciar 🚀"):
+            st.session_state.start = True
+            st.experimental_rerun()  # Recarrega app para mostrar o restante
+    st.stop()  # Para execução até o clique
+
+# =========================
+# RESTO DO SEU CÓDIGO ORIGINAL
+# =========================
 # =========================
 # Abas
 # =========================
@@ -370,13 +407,3 @@ with tab1:
         st.download_button(
             label="⬇️ Baixar detalhe_funcionarios.xlsx",
             data=output_detalhe,
-            file_name="detalhe_funcionarios.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-# -------------------------
-# Aba Demais fornecedores
-# -------------------------
-with tab2:
-    st.header("🚧 Em desenvolvimento")
-    st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
