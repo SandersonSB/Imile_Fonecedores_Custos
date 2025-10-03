@@ -98,57 +98,57 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 # =========================
-# Tela inicial com GIF animado + botão estilizado
+# Tela inicial com GIF animado + botão
 # =========================
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
 
     st.markdown(f"""
-<style>
-    .splash-container {{
-        text-align: center;
-        animation: fadeIn 1.5s ease-in-out;
-        margin-top: 50px;
-    }}
+    <style>
+        .splash-container {{
+            text-align: center;
+            animation: fadeIn 1.5s ease-in-out;
+            margin-top: 50px;
+        }}
 
-    @keyframes fadeIn {{
-        0% {{ opacity: 0; transform: translateY(-20px); }}
-        100% {{ opacity: 1; transform: translateY(0); }}
-    }}
+        @keyframes fadeIn {{
+            0% {{ opacity: 0; transform: translateY(-20px); }}
+            100% {{ opacity: 1; transform: translateY(0); }}
+        }}
 
-    .start-btn {{
-        background-color: #2C3E50;
-        color: white;
-        padding: 12px 30px;
-        border: none;
-        border-radius: 10px;
-        font-size: 18px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 20px;
-    }}
+        .start-btn {{
+            background-color: #2C3E50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }}
 
-    .start-btn:hover {{
-        background-color: #34495E;
-        transform: scale(1.05);
-    }}
+        .start-btn:hover {{
+            background-color: #34495E;
+            transform: scale(1.05);
+        }}
 
-    .desc-text {{
-        color: #34495E;
-        font-size: 18px;
-        max-width: 700px;
-        margin: 10px auto 30px auto;
-    }}
-</style>
+        .desc-text {{
+            color: #34495E;
+            font-size: 18px;
+            max-width: 700px;
+            margin: 10px auto 30px auto;
+        }}
+    </style>
 
-<div class="splash-container">
-    <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
-    <p class="desc-text">
-        Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
-    </p>
-    <img src="{github_gif_url}" width="400">
-</div>
-""", unsafe_allow_html=True)
+    <div class="splash-container">
+        <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
+        <p class="desc-text">
+            Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
+        </p>
+        <img src="{github_gif_url}" width="400">
+    </div>
+    """, unsafe_allow_html=True)
 
 
     # Botão animado centralizado usando colunas
