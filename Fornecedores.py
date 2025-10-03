@@ -94,18 +94,18 @@ import time
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
 # =========================
-# Tela inicial com GIF animado
+# Inicializa o estado
 # =========================
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
+# =========================
+# Tela inicial com GIF + botão
+# =========================
 if not st.session_state.iniciado:
-    st.session_state.iniciado = True  # marca como iniciado para não repetir
-    
-    # GIF animado hospedado no GitHub
-    github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.gif?raw=true"
+    github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"  # substitua pelo seu GIF
 
-    # Título e descrição
+    # Título e descrição centralizados
     st.markdown(
         "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", 
         unsafe_allow_html=True
@@ -122,17 +122,18 @@ if not st.session_state.iniciado:
     # GIF animado
     st.image(github_gif_url, use_container_width=True)
 
-    # Simula carregamento de 4 segundos
-    with st.spinner("Carregando o sistema..."):
-        time.sleep(4)
+    # Botão centralizado
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Iniciar 🚀"):
+            st.session_state.iniciado = True
+            # Sem st.experimental_rerun() nem st.stop(), o fluxo continuará no próximo rerun natural
+else:
+    # =========================
+    # Aqui continua o restante do app
+    # =========================
+    st.write("App iniciado! Pode continuar com o restante do código...")
 
-    # Depois do delay, continua para o restante do app
-    st.experimental_rerun()
-
-# =========================
-# Aqui continua o restante do app
-# =========================
-st.write("App iniciado! Pode continuar com o restante do código...")
 
 
 # -------------------------
