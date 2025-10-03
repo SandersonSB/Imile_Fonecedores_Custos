@@ -1,5 +1,5 @@
 # =========================
-# fornecedores_streamlit.py
+# fornecedores_streamlit.py - Versão completa
 # =========================
 
 import streamlit as st
@@ -14,27 +14,23 @@ import time
 # =========================
 # Funções auxiliares
 # =========================
+
 def normalizar_nome_coluna(nome):
+    """Padroniza os nomes das colunas do PDF"""
     if not nome:
         return None
     nome = nome.upper()
-    if "TRAB" in nome:
-        return "total_trabalhado"
-    if "NOTURNO" in nome:
-        return "total_noturno"
-    if "PREVIST" in nome:
-        return "horas_previstas"
-    if "FALTA" in nome:
-        return "faltas"
-    if "ATRASO" in nome:
-        return "horas_atraso"
-    if "EXTRA" in nome:
-        return "extra_50"
-    if "DSR" in nome:
-        return "desconta_dsr"
+    if "TRAB" in nome: return "total_trabalhado"
+    if "NOTURNO" in nome: return "total_noturno"
+    if "PREVIST" in nome: return "horas_previstas"
+    if "FALTA" in nome: return "faltas"
+    if "ATRASO" in nome: return "horas_atraso"
+    if "EXTRA" in nome: return "extra_50"
+    if "DSR" in nome: return "desconta_dsr"
     return None
 
 def padronizar_tempo(valor):
+    """Garantir que o valor de tempo esteja no formato HH:MM"""
     if not valor:
         return "00:00"
     if re.match(r"^\d{1,3}:\d{2}$", valor.strip()):
@@ -42,12 +38,14 @@ def padronizar_tempo(valor):
     return "00:00"
 
 def limpar_texto(texto):
+    """Remove caracteres especiais e deixa em maiúsculas"""
     texto = texto.upper()
     texto = re.sub(r'[^A-Z0-9 ]', '', texto)
     texto = re.sub(r'\s+', ' ', texto)
     return texto.strip()
 
 def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
+    """Encontra o tema mais próximo da linha de texto usando similaridade"""
     linha = limpar_texto(linha)
     melhor_tema = None
     melhor_ratio = 0
@@ -61,6 +59,7 @@ def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     return None
 
 def hora_para_minutos(hora):
+    """Converte HH:MM em minutos"""
     if not hora or hora.strip() == "":
         return 0
     try:
@@ -70,19 +69,17 @@ def hora_para_minutos(hora):
         return 0
 
 def limpa_valor(v):
+    """Transforma valor em string limpa"""
     return str(v or "").strip()
 
 def eh_horario(valor):
-    if not isinstance(valor, str):
-        return False
-    if ":" not in valor:
-        return False
+    """Verifica se o valor está no formato de horário válido HH:MM"""
+    if not isinstance(valor, str): return False
+    if ":" not in valor: return False
     partes = valor.split(":")
-    if len(partes) != 2:
-        return False
+    if len(partes) != 2: return False
     h, m = partes
-    if not (h.isdigit() and m.isdigit()):
-        return False
+    if not (h.isdigit() and m.isdigit()): return False
     h, m = int(h), int(m)
     return 0 <= h < 24 and 0 <= m < 60
 
@@ -92,15 +89,14 @@ def eh_horario(valor):
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
 # =========================
-# TELA INICIAL COM IMAGEM
+# Tela inicial com imagem GitHub
 # =========================
 if "start" not in st.session_state:
     st.session_state.start = False
 
 if not st.session_state.start:
-    # Título e descrição centralizados
     st.markdown(
-        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", 
+        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>",
         unsafe_allow_html=True
     )
     st.markdown(
@@ -108,18 +104,15 @@ if not st.session_state.start:
         "Este aplicativo processa apontamentos de funcionários em PDF, "
         "aplica regras de validação de horários e situações, "
         "e gera relatórios finais prontos para análise."
-        "</p>", 
+        "</p>",
         unsafe_allow_html=True
     )
 
-    # Exibe imagem inicial centralizada por 5 segundos
-    st.image(
-        "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true", 
-        use_container_width=True
-    )
-    time.sleep(5)
+    # Exibe imagem inicial do GitHub
+    github_image_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
+    st.image(github_image_url, use_container_width=True)
 
-    # Botão centralizado
+    # Botão iniciar
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         if st.button("Iniciar 🚀"):
@@ -128,7 +121,7 @@ if not st.session_state.start:
     st.stop()
 
 # =========================
-# ABAS DO APP
+# Abas do Streamlit
 # =========================
 tab1, tab2 = st.tabs(["Blitz", "Demais fornecedores"])
 
@@ -141,7 +134,8 @@ with tab1:
     
     if uploaded_file:
         st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
-        
+
+        # Lista de temas possíveis
         lista_temas_mestra = [
             "FALTA SEM JUSTIFICATIVA",
             "ABONO DE HORAS",
@@ -151,18 +145,18 @@ with tab1:
             "FOLGA HABILITADA",
             "SAÍDA ANTECIPADA"
         ]
-        
+
         dados_funcionarios = []
         detalhes = []
-        
+
+        # Leitura do PDF
         with pdfplumber.open(uploaded_file) as pdf:
             for i, pagina in enumerate(pdf.pages):
                 texto = pagina.extract_text()
                 tabela = pagina.extract_table()
-                if not texto and not tabela:
-                    continue
+                if not texto and not tabela: continue
                 linhas = texto.split("\n") if texto else []
-                
+
                 funcionario = {
                     "pagina": i+1,
                     "nome": None,
@@ -177,11 +171,11 @@ with tab1:
                     "horas_atraso": "00:00",
                     "extra_50": "00:00",
                     "desconta_dsr": 0,
-                    "status": None
+                    "status": None,
                 }
                 for tema in lista_temas_mestra:
                     funcionario[tema] = 0
-                
+
                 # Cabeçalho
                 for linha in linhas:
                     if "NOME DO FUNCIONÁRIO:" in linha:
@@ -193,7 +187,7 @@ with tab1:
                         funcionario["cargo"] = linha.split("NOME DO CARGO:")[-1].split("QUI")[0].strip()
                     elif "NOME DO CENTRO DE CUSTO:" in linha:
                         funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip()
-                
+
                 # Totais tabela
                 if tabela:
                     cabecalho = tabela[0]
@@ -206,36 +200,34 @@ with tab1:
                                         funcionario[chave] = int(valor) if valor and valor.isdigit() else 0
                                     else:
                                         funcionario[chave] = padronizar_tempo(valor)
-                            if funcionario["extra_50"] == funcionario["horas_previstas"]:
-                                funcionario["extra_50"] = "00:00"
-                
+                    if funcionario["extra_50"] == funcionario["horas_previstas"]:
+                        funcionario["extra_50"] = "00:00"
+
                 # Alterações / justificativas
                 encontrou_alteracoes = False
                 for linha_texto in linhas:
                     linha_clean = limpar_texto(linha_texto)
-                    if not encontrou_alteracoes:
-                        if "ALTERACAO" in linha_clean:
-                            encontrou_alteracoes = True
-                            continue
+                    if not encontrou_alteracoes and "ALTERACAO" in linha_clean:
+                        encontrou_alteracoes = True
+                        continue
                     if "BLITZ RECURSOS HUMANOS" in linha_clean:
                         break
                     linha_final = re.sub(r'\d{2}/\d{2}/\d{4}', '', linha_texto)
                     linha_final = re.sub(r'\d{1,2}:\d{2}(:\d{2})?', '', linha_final)
                     linha_final = re.sub(r'\d+', '', linha_final).strip()
-                    if not linha_final:
-                        continue
+                    if not linha_final: continue
                     tema_encontrado = achar_tema_mais_proximo(linha_final, lista_temas_mestra)
                     if tema_encontrado:
                         funcionario[tema_encontrado] += 1
-                
+
                 # Status OK/NOK
                 if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
                     funcionario["status"] = "NOK"
                 else:
                     funcionario["status"] = "OK"
-                
+
                 dados_funcionarios.append(funcionario)
-                
+
                 # Detalhe diário
                 if tabela:
                     for linha_detalhe in tabela[1:]:
@@ -265,18 +257,21 @@ with tab1:
                             "desconta_dsr": linha_detalhe[12] if len(linha_detalhe) > 12 else "",
                         }
                         detalhes.append(registro)
-        
+
         # =========================
         # Criação dos DataFrames
         # =========================
         df = pd.DataFrame(dados_funcionarios).fillna(0)
         df_detalhe = pd.DataFrame(detalhes)
+
+        # Consolidado sem justificativas
         colunas_justificativas = lista_temas_mestra
         df_consolidado = df.drop(columns=colunas_justificativas)
-        
-        # =========================
-        # Validação de horários e situações
-        # =========================
+
+        # -------------------------
+        # Validações e regras do df_detalhe
+        # -------------------------
+        # 1. Validação de horários
         valores_validacao = []
         for _, row in df_detalhe.iterrows():
             total_minutos = (
@@ -284,18 +279,22 @@ with tab1:
                 hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
             )
             previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
+
             if total_minutos > previsto_minutos:
                 status = "Carga Horaria Completa - Fez Hora Extra"
             elif total_minutos == previsto_minutos:
                 status = "Carga Horaria Completa"
             else:
                 status = "Carga Horaria Incompleta"
+
             valores_validacao.append(status)
+
         df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
+        # 2. Situação do dia
         for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
             df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
-        
+
         def determinar_situacao(row):
             valores = [
                 limpa_valor(row["ent_1"]),
@@ -316,7 +315,7 @@ with tab1:
         df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
         df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
 
-        # Reavaliação dias incompletos
+        # 3. Reavaliação de dias incompletos
         df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
         def reavaliar_situacao(row):
             if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
@@ -333,9 +332,10 @@ with tab1:
             if textos:
                 return textos[0].upper()
             return "Presença parcial"
+
         df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
 
-        # Correção de "-"
+        # 4. Correção de "-" e coluna "correção"
         df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
         def pegar_correcao(row):
             for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
@@ -346,7 +346,7 @@ with tab1:
         df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
         df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
 
-        # Regra adicional: início com número
+        # 5. Regra adicional: início com número
         def regra_numero_inicio(row):
             situacao = limpa_valor(row["Situação"])
             if situacao and situacao[0].isdigit():
@@ -359,7 +359,7 @@ with tab1:
             return situacao
         df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
-        # Contagem de justificativas por CPF
+        # 6. Contagem de justificativas por CPF
         situacoes_unicas = df_detalhe["Situação"].unique()
         for sit in situacoes_unicas:
             nome_col = f"Qtd - {sit}"
