@@ -88,17 +88,24 @@ def eh_horario(valor):
 # =========================
 # Configuração da página
 # =========================
+import streamlit as st
+import time
+
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
 # =========================
-# Tela inicial com imagem + botão
+# Tela inicial com GIF animado
 # =========================
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    github_image_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
+    st.session_state.iniciado = True  # marca como iniciado para não repetir
+    
+    # GIF animado hospedado no GitHub
+    github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.gif?raw=true"
 
+    # Título e descrição
     st.markdown(
         "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", 
         unsafe_allow_html=True
@@ -112,19 +119,21 @@ if not st.session_state.iniciado:
         unsafe_allow_html=True
     )
 
-    st.image(github_image_url, use_container_width=True)
+    # GIF animado
+    st.image(github_gif_url, use_container_width=True)
 
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button("Iniciar 🚀"):
-            st.session_state.iniciado = True
-            st.experimental_rerun()
-    st.stop()
+    # Simula carregamento de 4 segundos
+    with st.spinner("Carregando o sistema..."):
+        time.sleep(4)
+
+    # Depois do delay, continua para o restante do app
+    st.experimental_rerun()
 
 # =========================
-# Abas
+# Aqui continua o restante do app
 # =========================
-tab1, tab2 = st.tabs(["Blitz", "Demais fornecedores"])
+st.write("App iniciado! Pode continuar com o restante do código...")
+
 
 # -------------------------
 # Aba Blitz
