@@ -1,16 +1,16 @@
 # =====================================================
-# fornecedores.py - App Streamlit
+# STREAMLIT - PROCESSAMENTO DE APONTAMENTOS BLITZ
 # =====================================================
 import streamlit as st
-import pandas as pd
 import pdfplumber
+import pandas as pd
 import re
 from difflib import SequenceMatcher
 import numpy as np
 
-# =====================================================
-# Funções auxiliares
-# =====================================================
+# -------------------------------
+# Funções auxiliares do PDF
+# -------------------------------
 def normalizar_nome_coluna(nome):
     if not nome:
         return None
@@ -83,9 +83,9 @@ def eh_horario(valor):
     h, m = int(h), int(m)
     return 0 <= h < 24 and 0 <= m < 60
 
-# =====================================================
+# -------------------------------
 # Função principal de processamento
-# =====================================================
+# -------------------------------
 def processar_pdf(pdf_file):
     lista_temas_mestra = [
         "FALTA SEM JUSTIFICATIVA",
@@ -109,10 +109,19 @@ def processar_pdf(pdf_file):
             linhas = texto.split("\n") if texto else []
 
             funcionario = {
-                "pagina": i+1, "nome": None, "cpf": None, "matricula": None,
-                "cargo": None, "centro_custo": None, "total_trabalhado": "00:00",
-                "total_noturno": "00:00", "horas_previstas": "00:00", "faltas": 0,
-                "horas_atraso": "00:00", "extra_50": "00:00", "desconta_dsr": 0,
+                "pagina": i+1,
+                "nome": None,
+                "cpf": None,
+                "matricula": None,
+                "cargo": None,
+                "centro_custo": None,
+                "total_trabalhado": "00:00",
+                "total_noturno": "00:00",
+                "horas_previstas": "00:00",
+                "faltas": 0,
+                "horas_atraso": "00:00",
+                "extra_50": "00:00",
+                "desconta_dsr": 0,
                 "status": None,
             }
             for tema in lista_temas_mestra:
@@ -164,6 +173,7 @@ def processar_pdf(pdf_file):
                 if tema_encontrado:
                     funcionario[tema_encontrado] += 1
 
+            # Status OK/NOK
             if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
                 funcionario["status"] = "NOK"
             else:
@@ -201,9 +211,8 @@ def processar_pdf(pdf_file):
                     }
                     detalhes.append(registro)
 
-    # Criação dos DataFrames
-    df = pd.DataFrame(dados_funcionarios)
-    df.fillna(0, inplace=True)
+    # Criar DataFrames
+    df = pd.DataFrame(dados_funcionarios).fillna(0)
     df_detalhe = pd.DataFrame(detalhes)
 
     # Consolidado sem justificativas
@@ -213,20 +222,121 @@ def processar_pdf(pdf_file):
     ]
     df_consolidado_sem_justificativas = df.drop(columns=colunas_justificativas)
 
-    # Retorna os DataFrames finais
+    # Validação de horas trabalhadas
+    valores_validacao = []
+    for _, row in df_detalhe.iterrows():
+        total_minutos = (
+            hora_para_minutos(limpa_valor(row.get("sai_1"))) - hora_para_minutos(limpa_valor(row.get("ent_1"))) +
+            hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
+        )
+        previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
+        if total_minutos > previsto_minutos:
+            status = "Carga Horaria Completa - Fez Hora Extra"
+        elif total_minutos == previsto_minutos:
+            status = "Carga Horaria Completa"
+        else:
+            status = "Carga Horaria Incompleta"
+        valores_validacao.append(status)
+    df_detalhe["Validação da hora trabalhada"] = valores_validacao
+
+    # Situação do dia
+    for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+        df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
+
+    def determinar_situacao(row):
+        valores = [
+            limpa_valor(row["ent_1"]),
+            limpa_valor(row["sai_1"]),
+            limpa_valor(row["ent_2"]),
+            limpa_valor(row["sai_2"])
+        ]
+        textos = [v for v in valores if v and not eh_horario(v)]
+        if textos:
+            return textos[0].upper()
+        horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
+        if all(horarios_validos):
+            return "Dia normal de trabalho"
+        if any(horarios_validos):
+            return "Presença parcial"
+        return "Dia incompleto"
+
+    df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
+    df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
+
+    # Reavaliação de dias incompletos
+    df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
+
+    def reavaliar_situacao(row):
+        if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
+            return "Dia normal de trabalho"
+        previsto = limpa_valor(row.get("previsto")).upper()
+        entradas_saidas = [
+            limpa_valor(row.get("ent_1")),
+            limpa_valor(row.get("sai_1")),
+            limpa_valor(row.get("ent_2")),
+            limpa_valor(row.get("sai_2"))
+        ]
+        if all(v == "" for v in entradas_saidas):
+            return "Dia não previsto"
+        textos = [v for v in entradas_saidas if v and not eh_horario(v)]
+        if textos:
+            return textos[0].upper()
+        return "Presença parcial"
+
+    df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
+
+    # Correção de "-" e coluna "correção"
+    df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
+
+    def pegar_correcao(row):
+        for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+            val = limpa_valor(row.get(col))
+            if val:
+                return val
+        return ""
+    df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
+    df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
+
+    # Situação que começa com número
+    def regra_numero_inicio(row):
+        situacao = limpa_valor(row["Situação"])
+        if situacao and situacao[0].isdigit():
+            total_trab = limpa_valor(row.get("total_trabalhado"))
+            if eh_horario(total_trab) and total_trab != "00:00":
+                return "Dia normal de trabalho"
+            else:
+                previsto = limpa_valor(row.get("previsto")).upper()
+                return previsto if previsto else "Dia não previsto"
+        return situacao
+
+    df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
+
+    # Contagem de justificativas por CPF
+    situacoes_unicas = df_detalhe["Situação"].unique()
+    for sit in situacoes_unicas:
+        nome_col = f"Qtd - {sit}"
+        df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
+
     return df_consolidado_sem_justificativas, df_detalhe
 
-# =====================================================
-# Streamlit Interface
-# =====================================================
-st.set_page_config(page_title="Fornecedores", layout="wide")
-st.title("Sistema de Apontamentos - Fornecedores")
-st.markdown("Este aplicativo processa apontamentos de funcionários a partir de PDFs e gera relatórios consolidados.")
+# -------------------------------
+# Streamlit App
+# -------------------------------
+st.set_page_config(page_title="Blitz App", layout="wide")
+
+if "iniciar" not in st.session_state:
+    st.session_state.iniciar = False
+
+st.title("📌 Sistema de Apontamentos de Funcionários")
+st.markdown("Este aplicativo processa os apontamentos de funcionários em PDF e gera relatórios consolidados.")
 
 if st.button("Iniciar"):
-    aba = st.tabs(["Blitz", "Demais Fornecedores"])
+    st.session_state.iniciar = True
 
-    with aba[0]:
+if st.session_state.iniciar:
+    abas = st.tabs(["Blitz", "Demais Fornecedores"])
+
+    with abas[0]:
         st.subheader("Blitz")
         pdf_file = st.file_uploader("📂 Selecione o PDF de apontamentos", type=["pdf"])
         if pdf_file:
@@ -238,6 +348,6 @@ if st.button("Iniciar"):
             st.download_button("⬇️ Baixar consolidado_blitz.xlsx", "consolidado_blitz.xlsx")
             st.download_button("⬇️ Baixar detalhe_funcionarios.xlsx", "detalhe_funcionarios.xlsx")
 
-    with aba[1]:
+    with abas[1]:
         st.subheader("Demais Fornecedores")
         st.warning("Esta aba ainda está em desenvolvimento.")
