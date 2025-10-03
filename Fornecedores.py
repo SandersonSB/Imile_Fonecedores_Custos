@@ -88,31 +88,21 @@ def eh_horario(valor):
 
 import streamlit as st
 
-# =========================
-# Configuração da página
-# =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
-# =========================
-# Inicializa o estado
-# =========================
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
-# =========================
-# Tela inicial
-# =========================
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
 
-    # CSS para centralizar e aumentar o botão Streamlit
     st.markdown("""
     <style>
         .splash-container {
             display: flex;
             flex-direction: column;
-            align-items: center;       /* centraliza horizontalmente */
-            justify-content: center;   /* centraliza verticalmente */
+            align-items: center; 
+            justify-content: center; 
             text-align: center;
             min-height: 80vh;
         }
@@ -124,10 +114,13 @@ if not st.session_state.iniciado:
             margin: 10px auto 30px auto;
         }
 
-        /* Botão Streamlit centralizado e maior */
+        /* Força o botão do Streamlit a centralizar */
+        div.stButton {
+            display: flex;
+            justify-content: center;
+        }
+
         div.stButton > button {
-            display: block;
-            margin: 0 auto;           /* centraliza o botão */
             height: 60px;
             width: 250px;
             font-size: 22px;
@@ -143,7 +136,6 @@ if not st.session_state.iniciado:
     </style>
     """, unsafe_allow_html=True)
 
-    # Conteúdo centralizado
     st.markdown(f"""
     <div class="splash-container">
         <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
@@ -154,9 +146,10 @@ if not st.session_state.iniciado:
     </div>
     """, unsafe_allow_html=True)
 
-    # Botão Streamlit agora centralizado via CSS
+    # Botão agora fica no centro
     if st.button("Iniciar 🚀"):
         st.session_state.iniciado = True
+
 # =========================
 # Resto do app só roda depois de iniciar
 # =========================
