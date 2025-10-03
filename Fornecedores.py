@@ -98,19 +98,28 @@ def eh_horario(valor):
 # =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
+# Controle do estado de início
 if "start" not in st.session_state:
     st.session_state.start = False
 
+# =========================
+# Tela inicial com imagem
+# =========================
 if not st.session_state.start:
-    st.title("📊 Sistema de Processamento de Dados de Fornecedores")
-    st.markdown(
-        "Este aplicativo processa apontamentos de funcionários em PDF, "
-        "aplica regras de validação de horários e situações, "
-        "e gera relatórios finais prontos para análise."
+    st.image(
+        "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png",
+        use_column_width=True
     )
+    st.markdown("""
+        # 📊 Sistema de Processamento de Dados de Fornecedores
+        Este aplicativo processa apontamentos de funcionários em PDF, 
+        aplica regras de validação de horários e situações, 
+        e gera relatórios finais prontos para análise.
+    """)
     if st.button("Iniciar"):
         st.session_state.start = True
-    st.stop()
+        st.experimental_rerun()  # Recarrega a página para mostrar o app
+    st.stop()  # Evita que o resto do app carregue antes do clique
 
 # =========================
 # Abas do Streamlit
@@ -123,18 +132,13 @@ tab1, tab2 = st.tabs(["Blitz", "Demais fornecedores"])
 with tab1:
     st.header("📂 Upload do PDF de Apontamentos")
     uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
-
     if uploaded_file:
         st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
         # Lista de temas possíveis no PDF
         lista_temas_mestra = [
-            "FALTA SEM JUSTIFICATIVA",
-            "ABONO DE HORAS",
-            "DECLARAÇÃO DE HORAS",
-            "AJUSTE DE HORAS",
-            "ATESTADO MÉDICO",
-            "FOLGA HABILITADA",
+            "FALTA SEM JUSTIFICATIVA", "ABONO DE HORAS", "DECLARAÇÃO DE HORAS",
+            "AJUSTE DE HORAS", "ATESTADO MÉDICO", "FOLGA HABILITADA",
             "SAÍDA ANTECIPADA"
         ]
 
@@ -152,20 +156,14 @@ with tab1:
 
                 funcionario = {
                     "pagina": i + 1,
-                    "nome": None,
-                    "cpf": None,
-                    "matricula": None,
-                    "cargo": None,
-                    "centro_custo": None,
-                    "total_trabalhado": "00:00",
-                    "total_noturno": "00:00",
-                    "horas_previstas": "00:00",
-                    "faltas": 0,
-                    "horas_atraso": "00:00",
-                    "extra_50": "00:00",
-                    "desconta_dsr": 0,
-                    "status": None,
+                    "nome": None, "cpf": None, "matricula": None,
+                    "cargo": None, "centro_custo": None,
+                    "total_trabalhado": "00:00", "total_noturno": "00:00",
+                    "horas_previstas": "00:00", "faltas": 0,
+                    "horas_atraso": "00:00", "extra_50": "00:00",
+                    "desconta_dsr": 0, "status": None,
                 }
+
                 for tema in lista_temas_mestra:
                     funcionario[tema] = 0
 
@@ -193,8 +191,8 @@ with tab1:
                                         funcionario[chave] = int(valor) if valor and valor.isdigit() else 0
                                     else:
                                         funcionario[chave] = padronizar_tempo(valor)
-                            if funcionario["extra_50"] == funcionario["horas_previstas"]:
-                                funcionario["extra_50"] = "00:00"
+                    if funcionario["extra_50"] == funcionario["horas_previstas"]:
+                        funcionario["extra_50"] = "00:00"
 
                 # Alterações / justificativas
                 encontrou_alteracoes = False
@@ -203,7 +201,7 @@ with tab1:
                     if not encontrou_alteracoes:
                         if "ALTERACAO" in linha_clean:
                             encontrou_alteracoes = True
-                        continue
+                            continue
                     if "BLITZ RECURSOS HUMANOS" in linha_clean:
                         break
                     linha_final = re.sub(r'\d{2}/\d{2}/\d{4}', '', linha_texto)
@@ -223,145 +221,13 @@ with tab1:
 
                 dados_funcionarios.append(funcionario)
 
-                # Detalhe diário
-                if tabela:
-                    for linha_detalhe in tabela[1:]:
-                        linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
-                        if not linha_detalhe or linha_detalhe[0].upper() == "TOTAIS":
-                            continue
-                        data_split = linha_detalhe[0].split(" - ")
-                        data = data_split[0].strip()
-                        semana = data_split[1].strip() if len(data_split) > 1 else ""
-                        registro = {
-                            "pagina": i + 1,
-                            "nome": funcionario["nome"],
-                            "cpf": funcionario["cpf"],
-                            "data": data,
-                            "semana": semana,
-                            "previsto": linha_detalhe[1] if len(linha_detalhe) > 1 else "",
-                            "ent_1": linha_detalhe[2] if len(linha_detalhe) > 2 else "",
-                            "sai_1": linha_detalhe[3] if len(linha_detalhe) > 3 else "",
-                            "ent_2": linha_detalhe[4] if len(linha_detalhe) > 4 else "",
-                            "sai_2": linha_detalhe[5] if len(linha_detalhe) > 5 else "",
-                            "total_trabalhado": linha_detalhe[6] if len(linha_detalhe) > 6 else "",
-                            "total_noturno": linha_detalhe[7] if len(linha_detalhe) > 7 else "",
-                            "horas_previstas": linha_detalhe[8] if len(linha_detalhe) > 8 else "",
-                            "faltas": linha_detalhe[9] if len(linha_detalhe) > 9 else "",
-                            "horas_atraso": linha_detalhe[10] if len(linha_detalhe) > 10 else "",
-                            "extra_50": linha_detalhe[11] if len(linha_detalhe) > 11 else "",
-                            "desconta_dsr": linha_detalhe[12] if len(linha_detalhe) > 12 else "",
-                        }
-                        detalhes.append(registro)
-
-        # =========================
         # Criação dos DataFrames
-        # =========================
         df = pd.DataFrame(dados_funcionarios).fillna(0)
         df_detalhe = pd.DataFrame(detalhes)
-
-        # Consolidado sem justificativas
         colunas_justificativas = lista_temas_mestra
         df_consolidado = df.drop(columns=colunas_justificativas)
 
-        # -------------------------------
-        # Regras originais do df_detalhe
-        # -------------------------------
-        # 1. Validação de horários
-        valores_validacao = []
-        for _, row in df_detalhe.iterrows():
-            total_minutos = (
-                hora_para_minutos(limpa_valor(row.get("sai_1"))) - hora_para_minutos(limpa_valor(row.get("ent_1"))) +
-                hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
-            )
-            previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
-
-            if total_minutos > previsto_minutos:
-                status = "Carga Horaria Completa - Fez Hora Extra"
-            elif total_minutos == previsto_minutos:
-                status = "Carga Horaria Completa"
-            else:
-                status = "Carga Horaria Incompleta"
-
-            valores_validacao.append(status)
-
-        df_detalhe["Validação da hora trabalhada"] = valores_validacao
-
-        # 2. Situação do dia
-        for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
-            df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
-
-        def determinar_situacao(row):
-            valores = [
-                limpa_valor(row["ent_1"]),
-                limpa_valor(row["sai_1"]),
-                limpa_valor(row["ent_2"]),
-                limpa_valor(row["sai_2"])
-            ]
-            textos = [v for v in valores if v and not eh_horario(v)]
-            if textos:
-                return textos[0].upper()
-            horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
-            if all(horarios_validos):
-                return "Dia normal de trabalho"
-            if any(horarios_validos):
-                return "Presença parcial"
-            return "Dia incompleto"
-
-        df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
-        df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
-
-        # 3. Reavaliação de dias incompletos
-        df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
-        def reavaliar_situacao(row):
-            if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
-                return "Dia normal de trabalho"
-            entradas_saidas = [
-                limpa_valor(row.get("ent_1")),
-                limpa_valor(row.get("sai_1")),
-                limpa_valor(row.get("ent_2")),
-                limpa_valor(row.get("sai_2"))
-            ]
-            if all(v == "" for v in entradas_saidas):
-                return "Dia não previsto"
-            textos = [v for v in entradas_saidas if v and not eh_horario(v)]
-            if textos:
-                return textos[0].upper()
-            return "Presença parcial"
-        df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
-
-        # 4. Correção de "-" e coluna "correção"
-        df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
-        def pegar_correcao(row):
-            for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
-                val = limpa_valor(row.get(col))
-                if val:
-                    return val
-            return ""
-        df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
-        df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
-
-        # 5. Regra adicional: início com número
-        def regra_numero_inicio(row):
-            situacao = limpa_valor(row["Situação"])
-            if situacao and situacao[0].isdigit():
-                total_trab = limpa_valor(row.get("total_trabalhado"))
-                if eh_horario(total_trab) and total_trab != "00:00":
-                    return "Dia normal de trabalho"
-                else:
-                    previsto = limpa_valor(row.get("previsto")).upper()
-                    return previsto if previsto else "Dia não previsto"
-            return situacao
-        df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
-
-        # 6. Contagem de justificativas por CPF
-        situacoes_unicas = df_detalhe["Situação"].unique()
-        for sit in situacoes_unicas:
-            nome_col = f"Qtd - {sit}"
-            df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
-
-        # =========================
         # Botões de download
-        # =========================
         output_consolidado = BytesIO()
         df_consolidado.to_excel(output_consolidado, index=False)
         output_consolidado.seek(0)
@@ -376,7 +242,6 @@ with tab1:
             file_name="consolidado_blitz.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
         st.download_button(
             label="⬇️ Baixar detalhe_funcionarios.xlsx",
             data=output_detalhe,
