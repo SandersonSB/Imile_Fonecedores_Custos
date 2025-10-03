@@ -102,35 +102,18 @@ if "iniciado" not in st.session_state:
 # =========================
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
-
-    st.markdown(
-        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        "<p style='text-align: center; color: #34495E; font-size:18px;'>"
-        "Este aplicativo processa apontamentos de funcionários em PDF, "
-        "aplica regras de validação de horários e situações, "
-        "e gera relatórios finais prontos para análise."
-        "</p>",
-        unsafe_allow_html=True
-    )
-
-    st.image(github_gif_url, use_container_width=True)
-
+    st.markdown("<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #34495E; font-size:18px;'>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p>", unsafe_allow_html=True)
+    st.image(github_gif_url, width=400)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
-            # Não usar st.experimental_rerun(), apenas a flag inicia o app no próximo rerun
 
 # =========================
 # Resto do app só roda depois de iniciar
 # =========================
 else:
-    # =========================
-    # Criação de abas
-    # =========================
     tab1, tab2 = st.tabs(["📂 Blitz", "🚧 Demais Fornecedores"])
 
     # -------------------------
@@ -275,7 +258,9 @@ else:
             colunas_justificativas = lista_temas_mestra
             df_consolidado = df.drop(columns=colunas_justificativas)
 
+            # =========================
             # Validações e regras do df_detalhe
+            # =========================
             valores_validacao = []
             for _, row in df_detalhe.iterrows():
                 total_minutos = (
@@ -292,7 +277,6 @@ else:
                 valores_validacao.append(status)
             df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
-            # Situação do dia
             for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                 df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
 
@@ -311,7 +295,6 @@ else:
             df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
             df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
 
-            # Reavaliação de dias incompletos
             df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
             def reavaliar_situacao(row):
                 if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
@@ -326,7 +309,6 @@ else:
                 return "Presença parcial"
             df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
 
-            # Correção de "-"
             df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
             def pegar_correcao(row):
                 for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
@@ -337,7 +319,6 @@ else:
             df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
             df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
 
-            # Regra adicional: início com número
             def regra_numero_inicio(row):
                 situacao = limpa_valor(row["Situação"])
                 if situacao and situacao[0].isdigit():
@@ -350,7 +331,6 @@ else:
                 return situacao
             df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
-            # Contagem de justificativas por CPF
             situacoes_unicas = df_detalhe["Situação"].unique()
             for sit in situacoes_unicas:
                 nome_col = f"Qtd - {sit}"
