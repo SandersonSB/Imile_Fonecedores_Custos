@@ -147,7 +147,7 @@ if not st.session_state.iniciado:
     """, unsafe_allow_html=True)
 
     # Criar 3 colunas e colocar o botão no meio
- 
+    col1, col2, col3 = st.columns([2,1,2])
     col1, col2, col3 = st.columns([2,1,2])  
 
     with col2:  
