@@ -98,16 +98,65 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 # =========================
-# Tela inicial com GIF + botão
+# Tela inicial com GIF animado + botão estilizado
 # =========================
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
-    st.markdown("<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #34495E; font-size:18px;'>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p>", unsafe_allow_html=True)
-    st.image(github_gif_url, width=400)
+
+    st.markdown("""
+    <style>
+        /* Fade-in para toda a splash screen */
+        .splash-container {
+            text-align: center;
+            animation: fadeIn 1.5s ease-in-out;
+            margin-top: 50px;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Botão estilizado */
+        .start-btn {
+            background-color: #2C3E50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            background-color: #34495E;
+            transform: scale(1.05);
+        }
+
+        /* Texto descrição */
+        .desc-text {
+            color: #34495E;
+            font-size: 18px;
+            max-width: 700px;
+            margin: 10px auto 30px auto;
+        }
+    </style>
+
+    <div class="splash-container">
+        <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
+        <p class="desc-text">
+            Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
+        </p>
+        <img src="{gif}" width="400">
+    </div>
+    """.format(gif=github_gif_url), unsafe_allow_html=True)
+
+    # Botão animado centralizado usando colunas
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Iniciar 🚀"):
+        if st.button("Iniciar 🚀", key="start_btn"):
             st.session_state.iniciado = True
 
 # =========================
@@ -115,6 +164,7 @@ if not st.session_state.iniciado:
 # =========================
 else:
     tab1, tab2 = st.tabs(["📂 Blitz", "🚧 Demais Fornecedores"])
+
 
     # -------------------------
     # Aba Blitz
