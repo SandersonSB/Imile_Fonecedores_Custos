@@ -108,8 +108,8 @@ if not st.session_state.iniciado:
     .splash-container {{
         display: flex;
         flex-direction: column;
-        align-items: center;       /* Centraliza horizontalmente */
-        justify-content: center;   /* Centraliza verticalmente */
+        align-items: center;       /* centraliza horizontalmente */
+        justify-content: center;   /* centraliza verticalmente */
         text-align: center;
         min-height: 80vh;
         animation: fadeIn 1.5s ease-in-out;
@@ -130,18 +130,18 @@ if not st.session_state.iniciado:
     .start-btn {{
         background-color: #2C3E50;
         color: white;
-        padding: 12px 30px;
+        padding: 20px 50px;       /* maior tamanho */
         border: none;
-        border-radius: 10px;
-        font-size: 18px;
+        border-radius: 12px;
+        font-size: 22px;           /* texto maior */
         cursor: pointer;
         transition: all 0.3s ease;
-        margin-top: 20px;
+        margin-top: 30px;
     }}
 
     .start-btn:hover {{
         background-color: #34495E;
-        transform: scale(1.05);
+        transform: scale(1.1);
     }}
 </style>
 
@@ -151,14 +151,13 @@ if not st.session_state.iniciado:
         Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
     </p>
     <img src="{github_gif_url}" width="600">
+    
+    <!-- Botão centralizado e maior -->
+    <form action="" method="get">
+        <button class="start-btn" type="submit">Iniciar 🚀</button>
+    </form>
 </div>
 """, unsafe_allow_html=True)
-
-# Botão centralizado usando colunas do Streamlit
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("Iniciar 🚀", key="start_btn"):
-            st.session_state.iniciado = True
 
 # =========================
 # Resto do app só roda depois de iniciar
