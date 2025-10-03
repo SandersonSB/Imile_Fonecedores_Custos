@@ -98,66 +98,63 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 # =========================
-# Tela inicial com GIF animado + botão
+# Tela inicial
 # =========================
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
 
+    # CSS para centralizar e aumentar o botão do Streamlit
+    st.markdown("""
+    <style>
+        .splash-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 80vh;
+        }
+
+        .desc-text {
+            color: #34495E;
+            font-size: 18px;
+            max-width: 700px;
+            margin: 10px auto 30px auto;
+        }
+
+        /* Botão Streamlit maior */
+        div.stButton > button {
+            height: 60px;
+            width: 250px;
+            font-size: 22px;
+            background-color: #2C3E50;
+            color: white;
+        }
+
+        div.stButton > button:hover {
+            background-color: #34495E;
+            transform: scale(1.05);
+            transition: all 0.3s ease;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Container centralizado
     st.markdown(f"""
-<style>
-    .splash-container {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;       /* centraliza horizontalmente */
-        justify-content: center;   /* centraliza verticalmente */
-        text-align: center;
-        min-height: 80vh;
-        animation: fadeIn 1.5s ease-in-out;
-    }}
+    <div class="splash-container">
+        <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
+        <p class="desc-text">
+            Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
+        </p>
+        <img src="{github_gif_url}" width="600">
+    </div>
+    """, unsafe_allow_html=True)
 
-    @keyframes fadeIn {{
-        0% {{ opacity: 0; transform: translateY(-20px); }}
-        100% {{ opacity: 1; transform: translateY(0); }}
-    }}
-
-    .desc-text {{
-        color: #34495E;
-        font-size: 18px;
-        max-width: 700px;
-        margin: 10px auto 30px auto;
-    }}
-
-    .start-btn {{
-        background-color: #2C3E50;
-        color: white;
-        padding: 20px 50px;       /* maior tamanho */
-        border: none;
-        border-radius: 12px;
-        font-size: 22px;           /* texto maior */
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 30px;
-    }}
-
-    .start-btn:hover {{
-        background-color: #34495E;
-        transform: scale(1.1);
-    }}
-</style>
-
-<div class="splash-container">
-    <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
-    <p class="desc-text">
-        Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
-    </p>
-    <img src="{github_gif_url}" width="600">
-    
-    <!-- Botão centralizado e maior -->
-    <form action="" method="get">
-        <button class="start-btn" type="submit">Iniciar 🚀</button>
-    </form>
-</div>
-""", unsafe_allow_html=True)
+    # Botão Streamlit centralizado
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Iniciar 🚀"):
+            st.session_state.iniciado = True
 
 # =========================
 # Resto do app só roda depois de iniciar
