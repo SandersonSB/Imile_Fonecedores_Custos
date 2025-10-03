@@ -154,6 +154,11 @@ if not st.session_state.iniciado:
 </div>
 """, unsafe_allow_html=True)
 
+# Botão centralizado usando colunas do Streamlit
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Iniciar 🚀", key="start_btn"):
+            st.session_state.iniciado = True
 
 # =========================
 # Resto do app só roda depois de iniciar
