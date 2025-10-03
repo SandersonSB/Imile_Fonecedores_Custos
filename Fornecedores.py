@@ -146,12 +146,12 @@ if not st.session_state.iniciado:
     </div>
     """, unsafe_allow_html=True)
 
-# Criar 3 colunas e colocar o botão no meio
-col1, col2, col3 = st.columns([1,2,1])  
-
-with col2:  
-    if st.button("Iniciar 🚀"):
-        st.session_state.iniciado = True
+    # Criar 3 colunas e colocar o botão no meio
+    col1, col2, col3 = st.columns([1,2,1])  
+    
+    with col2:  
+        if st.button("Iniciar 🚀"):
+            st.session_state.iniciado = True
 
 # =========================
 # Resto do app só roda depois de iniciar
