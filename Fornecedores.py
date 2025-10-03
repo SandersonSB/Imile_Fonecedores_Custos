@@ -136,22 +136,19 @@ if not st.session_state.iniciado:
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div class="splash-container">
-        <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
-        <p class="desc-text">
-            Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
-        </p>
-        <img src="{github_gif_url}" width="600">
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown(f"""
+<div class="splash-container">
+    <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
+    <p class="desc-text">
+        Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
+    </p>
+    <img src="{github_gif_url}" width="600">
+</div>
+""", unsafe_allow_html=True)
 
-    # Criar 3 colunas e colocar o botão no meio
-    col1, col2, col3 = st.columns([2,1,1])  
-    
-    with col2:  
-        if st.button("Iniciar 🚀"):
-            st.session_state.iniciado = True
+# Botão centralizado (sem precisar de colunas)
+if st.button("Iniciar 🚀"):
+    st.session_state.iniciado = True
 
 # =========================
 # Resto do app só roda depois de iniciar
