@@ -1,5 +1,5 @@
 # =========================
-# fornecedores_streamlit.py - Versão completa
+# fornecedores_streamlit.py - Versão completa com tela inicial
 # =========================
 
 import streamlit as st
@@ -14,9 +14,7 @@ import time
 # =========================
 # Funções auxiliares
 # =========================
-
 def normalizar_nome_coluna(nome):
-    """Padroniza os nomes das colunas do PDF"""
     if not nome:
         return None
     nome = nome.upper()
@@ -30,22 +28,18 @@ def normalizar_nome_coluna(nome):
     return None
 
 def padronizar_tempo(valor):
-    """Garantir que o valor de tempo esteja no formato HH:MM"""
-    if not valor:
-        return "00:00"
+    if not valor: return "00:00"
     if re.match(r"^\d{1,3}:\d{2}$", valor.strip()):
         return valor.strip()
     return "00:00"
 
 def limpar_texto(texto):
-    """Remove caracteres especiais e deixa em maiúsculas"""
     texto = texto.upper()
     texto = re.sub(r'[^A-Z0-9 ]', '', texto)
     texto = re.sub(r'\s+', ' ', texto)
     return texto.strip()
 
 def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
-    """Encontra o tema mais próximo da linha de texto usando similaridade"""
     linha = limpar_texto(linha)
     melhor_tema = None
     melhor_ratio = 0
@@ -59,7 +53,6 @@ def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     return None
 
 def hora_para_minutos(hora):
-    """Converte HH:MM em minutos"""
     if not hora or hora.strip() == "":
         return 0
     try:
@@ -69,11 +62,9 @@ def hora_para_minutos(hora):
         return 0
 
 def limpa_valor(v):
-    """Transforma valor em string limpa"""
     return str(v or "").strip()
 
 def eh_horario(valor):
-    """Verifica se o valor está no formato de horário válido HH:MM"""
     if not isinstance(valor, str): return False
     if ":" not in valor: return False
     partes = valor.split(":")
@@ -89,12 +80,16 @@ def eh_horario(valor):
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
 # =========================
+# Controle de tela inicial
+# =========================
+if "iniciado" not in st.session_state:
+    st.session_state.iniciado = False
+    st.session_state.start_time = time.time()  # Marca início da exibição da imagem
+
+# =========================
 # Tela inicial com imagem GitHub
 # =========================
-if "start" not in st.session_state:
-    st.session_state.start = False
-
-if not st.session_state.start:
+if not st.session_state.iniciado:
     st.markdown(
         "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>",
         unsafe_allow_html=True
@@ -108,17 +103,17 @@ if not st.session_state.start:
         unsafe_allow_html=True
     )
 
-    # Exibe imagem inicial do GitHub
+    # Imagem inicial do GitHub
     github_image_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
     st.image(github_image_url, use_container_width=True)
 
-    # Botão iniciar
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button("Iniciar 🚀"):
-            st.session_state.start = True
-            st.experimental_rerun()
-    st.stop()
+    # Tempo mínimo de exibição de 5 segundos
+    tempo_decorrido = time.time() - st.session_state.start_time
+    if tempo_decorrido >= 5:
+        st.session_state.iniciado = True
+    else:
+        st.info(f"Aguarde {int(5 - tempo_decorrido)} segundos...")
+        st.stop()  # Para execução até completar os 5 segundos
 
 # =========================
 # Abas do Streamlit
@@ -131,11 +126,10 @@ tab1, tab2 = st.tabs(["Blitz", "Demais fornecedores"])
 with tab1:
     st.header("📂 Upload do PDF de Apontamentos")
     uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
-    
+
     if uploaded_file:
         st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
-        # Lista de temas possíveis
         lista_temas_mestra = [
             "FALTA SEM JUSTIFICATIVA",
             "ABONO DE HORAS",
@@ -232,8 +226,7 @@ with tab1:
                 if tabela:
                     for linha_detalhe in tabela[1:]:
                         linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
-                        if not linha_detalhe or linha_detalhe[0].upper() == "TOTAIS":
-                            continue
+                        if not linha_detalhe or linha_detalhe[0].upper() == "TOTAIS": continue
                         data_split = linha_detalhe[0].split(" - ")
                         data = data_split[0].strip()
                         semana = data_split[1].strip() if len(data_split) > 1 else ""
@@ -268,10 +261,9 @@ with tab1:
         colunas_justificativas = lista_temas_mestra
         df_consolidado = df.drop(columns=colunas_justificativas)
 
-        # -------------------------
-        # Validações e regras do df_detalhe
-        # -------------------------
-        # 1. Validação de horários
+        # =========================
+        # Aplicação de regras originais do df_detalhe
+        # =========================
         valores_validacao = []
         for _, row in df_detalhe.iterrows():
             total_minutos = (
@@ -291,31 +283,23 @@ with tab1:
 
         df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
-        # 2. Situação do dia
+        # Situação do dia
         for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
             df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
 
         def determinar_situacao(row):
-            valores = [
-                limpa_valor(row["ent_1"]),
-                limpa_valor(row["sai_1"]),
-                limpa_valor(row["ent_2"]),
-                limpa_valor(row["sai_2"])
-            ]
+            valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]), limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
             textos = [v for v in valores if v and not eh_horario(v)]
-            if textos:
-                return textos[0].upper()
+            if textos: return textos[0].upper()
             horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
-            if all(horarios_validos):
-                return "Dia normal de trabalho"
-            if any(horarios_validos):
-                return "Presença parcial"
+            if all(horarios_validos): return "Dia normal de trabalho"
+            if any(horarios_validos): return "Presença parcial"
             return "Dia incompleto"
 
         df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
         df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
 
-        # 3. Reavaliação de dias incompletos
+        # Reavaliação dias incompletos
         df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
         def reavaliar_situacao(row):
             if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
@@ -329,24 +313,21 @@ with tab1:
             if all(v == "" for v in entradas_saidas):
                 return "Dia não previsto"
             textos = [v for v in entradas_saidas if v and not eh_horario(v)]
-            if textos:
-                return textos[0].upper()
+            if textos: return textos[0].upper()
             return "Presença parcial"
-
         df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
 
-        # 4. Correção de "-" e coluna "correção"
+        # Correção "-"
         df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
         def pegar_correcao(row):
             for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                 val = limpa_valor(row.get(col))
-                if val:
-                    return val
+                if val: return val
             return ""
         df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
         df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
 
-        # 5. Regra adicional: início com número
+        # Regra adicional: início com número
         def regra_numero_inicio(row):
             situacao = limpa_valor(row["Situação"])
             if situacao and situacao[0].isdigit():
@@ -359,7 +340,7 @@ with tab1:
             return situacao
         df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
-        # 6. Contagem de justificativas por CPF
+        # Contagem de justificativas
         situacoes_unicas = df_detalhe["Situação"].unique()
         for sit in situacoes_unicas:
             nome_col = f"Qtd - {sit}"
