@@ -9,13 +9,13 @@ import re
 from difflib import SequenceMatcher
 from io import BytesIO
 import numpy as np
-from streamlit_lottie import st_lottie
-import requests
 
 # =========================
 # Funções auxiliares
 # =========================
+
 def normalizar_nome_coluna(nome):
+    """Padroniza os nomes das colunas do PDF"""
     if not nome:
         return None
     nome = nome.upper()
@@ -36,6 +36,7 @@ def normalizar_nome_coluna(nome):
     return None
 
 def padronizar_tempo(valor):
+    """Garantir que o valor de tempo esteja no formato HH:MM"""
     if not valor:
         return "00:00"
     if re.match(r"^\d{1,3}:\d{2}$", valor.strip()):
@@ -43,12 +44,14 @@ def padronizar_tempo(valor):
     return "00:00"
 
 def limpar_texto(texto):
+    """Remove caracteres especiais e deixa em maiúsculas"""
     texto = texto.upper()
     texto = re.sub(r'[^A-Z0-9 ]', '', texto)
     texto = re.sub(r'\s+', ' ', texto)
     return texto.strip()
 
 def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
+    """Encontra o tema mais próximo da linha de texto usando similaridade"""
     linha = limpar_texto(linha)
     melhor_tema = None
     melhor_ratio = 0
@@ -62,18 +65,21 @@ def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     return None
 
 def hora_para_minutos(hora):
+    """Converte HH:MM em minutos"""
     if not hora or hora.strip() == "":
         return 0
     try:
         h, m = map(int, hora.split(":"))
-        return h*60 + m
+        return h * 60 + m
     except:
         return 0
 
 def limpa_valor(v):
+    """Transforma valor em string limpa"""
     return str(v or "").strip()
 
 def eh_horario(valor):
+    """Verifica se o valor está no formato de horário válido HH:MM"""
     if not isinstance(valor, str):
         return False
     if ":" not in valor:
@@ -88,61 +94,26 @@ def eh_horario(valor):
     return 0 <= h < 24 and 0 <= m < 60
 
 # =========================
-# FUNÇÃO PARA CARREGAR ANIMAÇÃO LOTTIE
-# =========================
-def carregar_animacao(url):
-    response = requests.get(url)
-    if response.status_code != 200:
-        return None
-    return response.json()
-
-# Coloque aqui a URL da animação que você criou
-animacao_url = "COLE_AQUI_O_LINK_DA_ANIMACAO_LOTTIE"
-animacao = carregar_animacao(animacao_url)
-
-# =========================
 # Configuração da página
 # =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
-# =========================
-# TELA INICIAL PROFISSIONAL
-# =========================
 if "start" not in st.session_state:
     st.session_state.start = False
 
 if not st.session_state.start:
-    # Título e descrição centralizados
+    st.title("📊 Sistema de Processamento de Dados de Fornecedores")
     st.markdown(
-        "<h1 style='text-align: center; color: #2C3E50;'>📊 Sistema de Processamento de Dados de Fornecedores</h1>", 
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        "<p style='text-align: center; color: #34495E; font-size:18px;'>"
         "Este aplicativo processa apontamentos de funcionários em PDF, "
         "aplica regras de validação de horários e situações, "
         "e gera relatórios finais prontos para análise."
-        "</p>", 
-        unsafe_allow_html=True
     )
-    
-    # Exibe animação centralizada
-    if animacao:
-        st_lottie(animacao, height=300, key="animacao")
-
-    # Botão centralizado
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button("Iniciar 🚀"):
-            st.session_state.start = True
-            st.experimental_rerun()  # Recarrega app para mostrar o restante
-    st.stop()  # Para execução até o clique
+    if st.button("Iniciar"):
+        st.session_state.start = True
+    st.stop()
 
 # =========================
-# RESTO DO SEU CÓDIGO ORIGINAL
-# =========================
-# =========================
-# Abas
+# Abas do Streamlit
 # =========================
 tab1, tab2 = st.tabs(["Blitz", "Demais fornecedores"])
 
@@ -152,10 +123,11 @@ tab1, tab2 = st.tabs(["Blitz", "Demais fornecedores"])
 with tab1:
     st.header("📂 Upload do PDF de Apontamentos")
     uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
-    
+
     if uploaded_file:
         st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
+        # Lista de temas possíveis no PDF
         lista_temas_mestra = [
             "FALTA SEM JUSTIFICATIVA",
             "ABONO DE HORAS",
@@ -165,10 +137,11 @@ with tab1:
             "FOLGA HABILITADA",
             "SAÍDA ANTECIPADA"
         ]
-        
+
         dados_funcionarios = []
         detalhes = []
-        
+
+        # Leitura do PDF
         with pdfplumber.open(uploaded_file) as pdf:
             for i, pagina in enumerate(pdf.pages):
                 texto = pagina.extract_text()
@@ -178,7 +151,7 @@ with tab1:
                 linhas = texto.split("\n") if texto else []
 
                 funcionario = {
-                    "pagina": i+1,
+                    "pagina": i + 1,
                     "nome": None,
                     "cpf": None,
                     "matricula": None,
@@ -260,7 +233,7 @@ with tab1:
                         data = data_split[0].strip()
                         semana = data_split[1].strip() if len(data_split) > 1 else ""
                         registro = {
-                            "pagina": i+1,
+                            "pagina": i + 1,
                             "nome": funcionario["nome"],
                             "cpf": funcionario["cpf"],
                             "data": data,
@@ -410,10 +383,10 @@ with tab1:
             file_name="detalhe_funcionarios.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    # -------------------------
-    # Aba Demais fornecedores
-    # -------------------------
 
-        with tab2:
-        st.header("🚧 Em desenvolvimento")
-        st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
+# -------------------------
+# Aba Demais fornecedores
+# -------------------------
+with tab2:
+    st.header("🚧 Em desenvolvimento")
+    st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
