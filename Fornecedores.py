@@ -106,9 +106,13 @@ if not st.session_state.iniciado:
     st.markdown(f"""
 <style>
     .splash-container {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;       /* Centraliza horizontalmente */
+        justify-content: center;   /* Centraliza verticalmente */
         text-align: center;
+        min-height: 80vh;
         animation: fadeIn 1.5s ease-in-out;
-        margin-top: 50px;
     }}
 
     @keyframes fadeIn {{
@@ -120,9 +124,7 @@ if not st.session_state.iniciado:
         color: #34495E;
         font-size: 18px;
         max-width: 700px;
-        display: inline-block;       /* Força o bloco a ficar centralizado */
-        text-align: center;          /* Centraliza o texto dentro do bloco */
-        margin: 10px auto 30px auto; /* Espaçamento */
+        margin: 10px auto 30px auto;
     }}
 
     .start-btn {{
@@ -152,11 +154,6 @@ if not st.session_state.iniciado:
 </div>
 """, unsafe_allow_html=True)
 
-    # Botão animado centralizado usando colunas
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("Iniciar 🚀", key="start_btn"):
-            st.session_state.iniciado = True
 
 # =========================
 # Resto do app só roda depois de iniciar
