@@ -407,3 +407,13 @@ with tab1:
         st.download_button(
             label="⬇️ Baixar detalhe_funcionarios.xlsx",
             data=output_detalhe,
+            file_name="detalhe_funcionarios.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    # -------------------------
+    # Aba Demais fornecedores
+    # -------------------------
+
+        with tab2:
+        st.header("🚧 Em desenvolvimento")
+        st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
