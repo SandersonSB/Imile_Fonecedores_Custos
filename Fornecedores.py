@@ -86,9 +86,128 @@ def eh_horario(valor):
     h, m = int(h), int(m)
     return 0 <= h < 24 and 0 <= m < 60
 
-import streamlit as st
+# =========================
+# Layout e Página (IMILE)
+# =========================
 
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
+
+st.markdown("""
+    <style>
+    /* ===== Moldura externa ===== */
+    .main-container {
+        border: 4px solid #004080;
+        border-radius: 20px;
+        padding: 25px;
+        margin: 20px;
+        box-shadow: 4px 4px 25px rgba(0,0,0,0.2);
+        background-color: #ffffff;
+    }
+
+    /* Header */
+    .header {
+        background: linear-gradient(90deg, #004080, #FFC107);
+        padding: 25px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        border: 3px solid white;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        margin-bottom: 25px;
+    }
+    .header h1 {
+        margin: 0;
+        font-size: 44px;
+        font-weight: bold;
+    }
+    .header p {
+        margin: 5px 0 0 0;
+        font-size: 20px;
+        font-weight: 500;
+        color: #f9f9f9;
+    }
+
+    /* Card de boas-vindas */
+    .card {
+        background-color: #f2f6fc;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #004080;
+        border: 2px solid #004080;
+    }
+
+    /* Splash */
+    .splash-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center; 
+        justify-content: center; 
+        text-align: center;
+        min-height: 70vh;
+    }
+    .desc-text {
+        color: #34495E;
+        font-size: 18px;
+        max-width: 700px;
+        margin: 10px auto 30px auto;
+    }
+    div.stButton {
+        display: flex;
+        justify-content: center;
+    }
+    div.stButton > button {
+        height: 60px;
+        width: 250px;
+        font-size: 22px;
+        background-color: #004080;
+        color: white;
+        border-radius: 10px;
+        border: 2px solid #FFC107;
+    }
+    div.stButton > button:hover {
+        background-color: #0055b3;
+        transform: scale(1.05);
+        transition: all 0.3s ease;
+    }
+
+    /* Rodapé */
+    .footer {
+        background: linear-gradient(90deg, #004080, #FFC107);
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        border: 2px solid white;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        margin-top: 40px;
+    }
+    .footer p {
+        margin: 0;
+        font-size: 16px;
+    }
+    </style>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>IMILE</h1>
+            <p>Dashboard de Processamento de Fornecedores</p>
+        </div>
+
+        <!-- Card de boas-vindas -->
+        <div class="card">
+            <p>Bem-vindo ao sistema da Imile! Aqui você processa apontamentos de funcionários, aplica regras automáticas e gera relatórios com clareza e precisão.</p>
+        </div>
+""", unsafe_allow_html=True)
+
+# =========================
+# Sessão inicial (Splash)
+# =========================
 
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
@@ -96,70 +215,26 @@ if "iniciado" not in st.session_state:
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
 
-    st.markdown("""
-    <style>
-        .splash-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            text-align: center;
-            min-height: 80vh;
-        }
-
-        .desc-text {
-            color: #34495E;
-            font-size: 18px;
-            max-width: 700px;
-            margin: 10px auto 30px auto;
-        }
-
-        /* Força o botão do Streamlit a centralizar */
-        div.stButton {
-            display: flex;
-            justify-content: center;
-        }
-
-        div.stButton > button {
-            height: 60px;
-            width: 250px;
-            font-size: 22px;
-            background-color: #2C3E50;
-            color: white;
-        }
-
-        div.stButton > button:hover {
-            background-color: #34495E;
-            transform: scale(1.05);
-            transition: all 0.3s ease;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.markdown(f"""
     <div class="splash-container">
-        <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
+        <h1 style="color: #004080;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
         <p class="desc-text">
-            Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
+            Este aplicativo processa apontamentos em PDF, aplica regras de validação e gera relatórios consolidados e detalhados.
         </p>
         <img src="{github_gif_url}" width="600">
     </div>
     """, unsafe_allow_html=True)
 
-    # Criar 3 colunas e colocar o botão no meio
-    col1, col2, col3 = st.columns([1,1,1])
-    col1, col2, col3 = st.columns([3,2,2])  
-
-    with col2:  
+    col1, col2, col3 = st.columns([3,2,3])
+    with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
 
 # =========================
-# Resto do app só roda depois de iniciar
+# Após o início (aplica todo o fluxo original)
 # =========================
 else:
     tab1, tab2 = st.tabs(["📂 Blitz", "🚧 Demais Fornecedores"])
-
 
     # -------------------------
     # Aba Blitz
@@ -301,7 +376,8 @@ else:
             df = pd.DataFrame(dados_funcionarios).fillna(0)
             df_detalhe = pd.DataFrame(detalhes)
             colunas_justificativas = lista_temas_mestra
-            df_consolidado = df.drop(columns=colunas_justificativas)
+            # se alguma coluna de justificativa não existir no df, drop com errors='ignore'
+            df_consolidado = df.drop(columns=colunas_justificativas, errors='ignore')
 
             # =========================
             # Validações e regras do df_detalhe
@@ -330,7 +406,7 @@ else:
                 textos = [v for v in valores if v and not eh_horario(v)]
                 if textos:
                     return textos[0].upper()
-                horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
+                horarios_validos = [row.get("ent_1_valido", False), row.get("sai_1_valido", False), row.get("ent_2_valido", False), row.get("sai_2_valido", False)]
                 if all(horarios_validos):
                     return "Dia normal de trabalho"
                 if any(horarios_validos):
@@ -338,7 +414,7 @@ else:
                 return "Dia incompleto"
 
             df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
-            df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
+            df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True, errors='ignore')
 
             df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
             def reavaliar_situacao(row):
@@ -412,3 +488,14 @@ else:
     with tab2:
         st.header("🚧 Em desenvolvimento")
         st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
+
+# =========================
+# Rodapé dentro da moldura
+# =========================
+st.markdown("""
+        <!-- Rodapé -->
+        <div class="footer">
+            <p>© 2025 IMILE - Desenvolvido com ❤️ para eficiência operacional</p>
+        </div>
+    </div> <!-- Fim da moldura -->
+""", unsafe_allow_html=True)
