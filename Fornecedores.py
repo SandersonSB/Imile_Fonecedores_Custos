@@ -86,71 +86,71 @@ def eh_horario(valor):
     h, m = int(h), int(m)
     return 0 <= h < 24 and 0 <= m < 60
 
-import streamlit as st
+# =========================
+# Função para detectar PDFs possivelmente escaneados
+# =========================
+def pdf_pode_ser_imagem(pdf_file, limiar_texto=0.1):
+    import pdfplumber
+    with pdfplumber.open(pdf_file) as pdf:
+        total_paginas = len(pdf.pages)
+        paginas_com_texto = sum(1 for p in pdf.pages if p.extract_text() and p.extract_text().strip())
+    proporcao_texto = paginas_com_texto / total_paginas
+    return proporcao_texto < limiar_texto
 
+# =========================
+# Função de alerta estilizado para PDFs possivelmente escaneados
+# =========================
+def alerta_pdf_imagem(mensagem, key=None):
+    st.markdown(f"""
+    <div style="
+        padding: 20px;
+        border: 2px solid #FF5733;
+        background-color: #FFF0F0;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    ">
+        <strong>⚠️ Atenção:</strong> {mensagem}
+    </div>
+    """, unsafe_allow_html=True)
+    return st.button("Continuar mesmo assim", key=key)
+
+# =========================
+# Configuração do Streamlit
+# =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
-
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
     github_gif_url = "https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true"
-
     st.markdown("""
-    <style>
+        <style>
         .splash-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            text-align: center;
-            min-height: 80vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 80vh;
         }
-
         .desc-text {
-            color: #34495E;
-            font-size: 18px;
-            max-width: 700px;
-            margin: 10px auto 30px auto;
+            color: #34495E; font-size: 18px; max-width: 700px; margin: 10px auto 30px auto;
         }
-
-        /* Força o botão do Streamlit a centralizar */
-        div.stButton {
-            display: flex;
-            justify-content: center;
-        }
-
+        div.stButton { display: flex; justify-content: center; }
         div.stButton > button {
-            height: 60px;
-            width: 250px;
-            font-size: 22px;
-            background-color: #2C3E50;
-            color: white;
+            height: 60px; width: 250px; font-size: 22px; background-color: #2C3E50; color: white;
         }
-
         div.stButton > button:hover {
-            background-color: #34495E;
-            transform: scale(1.05);
-            transition: all 0.3s ease;
+            background-color: #34495E; transform: scale(1.05); transition: all 0.3s ease;
         }
-    </style>
+        </style>
     """, unsafe_allow_html=True)
-
     st.markdown(f"""
-    <div class="splash-container">
-        <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
-        <p class="desc-text">
-            Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
-        </p>
-        <img src="{github_gif_url}" width="600">
-    </div>
+        <div class="splash-container">
+            <h1 style="color: #2C3E50;">📊 Sistema de Processamento de Dados de Fornecedores</h1>
+            <p class="desc-text">
+                Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
+            </p>
+            <img src="{github_gif_url}" width="600">
+        </div>
     """, unsafe_allow_html=True)
-
-    # Criar 3 colunas e colocar o botão no meio
-    col1, col2, col3 = st.columns([1,1,1])
-    col1, col2, col3 = st.columns([3,2,2])  
-
-    with col2:  
+    col1, col2, col3 = st.columns([3,2,2])
+    with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
 
@@ -158,28 +158,37 @@ if not st.session_state.iniciado:
 # Resto do app só roda depois de iniciar
 # =========================
 else:
-    tab1, tab2 = st.tabs(["📂 Blitz", "🚧 Demais Fornecedores"])
+    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "📄 Pollynesse (D0)", "🧱 D0 - Em manutenção"])
+# -------------------------
+# Aba Blitz (original mantida)
+# -------------------------
+with tab1:
+    st.header("📂 Upload do PDF de Apontamentos")
+    uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
 
+    if uploaded_file:
+        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
-    # -------------------------
-    # Aba Blitz
-    # -------------------------
-    with tab1:
-        st.header("📂 Upload do PDF de Apontamentos")
-        uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
+        # 🚨 Verifica se o PDF é escaneado (sem texto)
+        with pdfplumber.open(uploaded_file) as pdf_temp:
+            tem_texto = any(p.extract_text() for p in pdf_temp.pages)
 
-        if uploaded_file:
-            st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+        if not tem_texto:
+            st.warning("⚠️ Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
+            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
+            if continuar == "Não":
+                st.stop()
 
-            lista_temas_mestra = [
-                "FALTA SEM JUSTIFICATIVA",
-                "ABONO DE HORAS",
-                "DECLARAÇÃO DE HORAS",
-                "AJUSTE DE HORAS",
-                "ATESTADO MÉDICO",
-                "FOLGA HABILITADA",
-                "SAÍDA ANTECIPADA"
-            ]
+        # (a partir daqui segue sua lógica original SEM ALTERAÇÃO)
+        lista_temas_mestra = [
+            "FALTA SEM JUSTIFICATIVA",
+            "ABONO DE HORAS",
+            "DECLARAÇÃO DE HORAS",
+            "AJUSTE DE HORAS",
+            "ATESTADO MÉDICO",
+            "FOLGA HABILITADA",
+            "SAÍDA ANTECIPADA"
+        ]
 
             dados_funcionarios = []
             detalhes = []
@@ -211,7 +220,6 @@ else:
                     for tema in lista_temas_mestra:
                         funcionario[tema] = 0
 
-                    # Cabeçalho
                     for linha in linhas:
                         if "NOME DO FUNCIONÁRIO:" in linha:
                             funcionario["nome"] = linha.split("NOME DO FUNCIONÁRIO:")[-1].split("CPF")[0].strip()
@@ -223,7 +231,6 @@ else:
                         elif "NOME DO CENTRO DE CUSTO:" in linha:
                             funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip()
 
-                    # Totais tabela
                     if tabela:
                         cabecalho = tabela[0]
                         for linha_tabela in tabela:
@@ -238,7 +245,6 @@ else:
                         if funcionario["extra_50"] == funcionario["horas_previstas"]:
                             funcionario["extra_50"] = "00:00"
 
-                    # Alterações / justificativas
                     encontrou_alteracoes = False
                     for linha_texto in linhas:
                         linha_clean = limpar_texto(linha_texto)
@@ -257,7 +263,6 @@ else:
                         if tema_encontrado:
                             funcionario[tema_encontrado] += 1
 
-                    # Status OK/NOK
                     if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
                         funcionario["status"] = "NOK"
                     else:
@@ -265,7 +270,6 @@ else:
 
                     dados_funcionarios.append(funcionario)
 
-                    # Detalhe diário
                     if tabela:
                         for linha_detalhe in tabela[1:]:
                             linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
@@ -295,17 +299,11 @@ else:
                             }
                             detalhes.append(registro)
 
-            # =========================
-            # Criação dos DataFrames
-            # =========================
             df = pd.DataFrame(dados_funcionarios).fillna(0)
             df_detalhe = pd.DataFrame(detalhes)
             colunas_justificativas = lista_temas_mestra
             df_consolidado = df.drop(columns=colunas_justificativas)
 
-            # =========================
-            # Validações e regras do df_detalhe
-            # =========================
             valores_validacao = []
             for _, row in df_detalhe.iterrows():
                 total_minutos = (
@@ -341,6 +339,7 @@ else:
             df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
 
             df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
+
             def reavaliar_situacao(row):
                 if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
                     return "Dia normal de trabalho"
@@ -352,15 +351,18 @@ else:
                 if textos:
                     return textos[0].upper()
                 return "Presença parcial"
+
             df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
 
             df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
+
             def pegar_correcao(row):
                 for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                     val = limpa_valor(row.get(col))
                     if val:
                         return val
                 return ""
+
             df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
             df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
 
@@ -374,6 +376,7 @@ else:
                         previsto = limpa_valor(row.get("previsto")).upper()
                         return previsto if previsto else "Dia não previsto"
                 return situacao
+
             df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
             situacoes_unicas = df_detalhe["Situação"].unique()
@@ -381,9 +384,6 @@ else:
                 nome_col = f"Qtd - {sit}"
                 df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-            # =========================
-            # Botões de download
-            # =========================
             output_consolidado = BytesIO()
             df_consolidado.to_excel(output_consolidado, index=False)
             output_consolidado.seek(0)
@@ -406,9 +406,70 @@ else:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-    # -------------------------
-    # Aba Demais fornecedores
+     # -------------------------
+    # Aba Polly
     # -------------------------
     with tab2:
-        st.header("🚧 Em desenvolvimento")
-        st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
+        st.header("📄 Extração de Texto e Tabelas - Polly")
+        uploaded_d0 = st.file_uploader("Selecione o arquivo PDF (D0)", type=["pdf"], key="upload_d0")
+        if uploaded_d0:
+            st.success(f"Arquivo {uploaded_d0.name} carregado com sucesso!")
+            textos_paginas = []
+            tabelas_encontradas = []
+
+            with pdfplumber.open(uploaded_d0) as pdf:
+                st.write(f"📚 Total de páginas detectadas: **{len(pdf.pages)}**")
+                for i, pagina in enumerate(pdf.pages):
+                    texto = pagina.extract_text() or ""
+                    if texto.strip():
+                        textos_paginas.append(f"### Página {i+1}\n\n{texto}\n\n")
+                    else:
+                        textos_paginas.append(f"### Página {i+1}\n> ⚠️ Nenhum texto detectado (imagem escaneada)")
+                    tabela = pagina.extract_table()
+                    if tabela:
+                        df_tabela = pd.DataFrame(tabela[1:], columns=tabela[0])
+                        tabelas_encontradas.append((i+1, df_tabela))
+
+            st.subheader("📜 Texto extraído")
+            for bloco in textos_paginas:
+                st.markdown(bloco)
+            
+            st.subheader("📊 Tabelas detectadas")
+            if tabelas_encontradas:
+                for i, tabela_df in tabelas_encontradas:
+                    st.markdown(f"**Tabela detectada na página {i}:**")
+                    st.dataframe(tabela_df)
+            else:
+                st.info("Nenhuma tabela detectada em nenhuma página.")
+            
+            texto_completo = "\n\n".join([b for b in textos_paginas])
+            buffer = BytesIO()
+            buffer.write(texto_completo.encode("utf-8"))
+            buffer.seek(0)
+
+            # Download com alerta
+            if pdf_pode_ser_imagem(uploaded_d0):
+                continuar = alerta_pdf_imagem(
+                    "O PDF parece ser escaneado (imagem). Pode não ler corretamente.",
+                    key="alert_d0"
+                )
+                if continuar:
+                    st.download_button(
+                        label="⬇️ Baixar texto extraído (D0)",
+                        data=buffer,
+                        file_name="texto_extraido_D0.txt",
+                        mime="text/plain"
+                    )
+            else:
+                st.download_button(
+                    label="⬇️ Baixar texto extraído (D0)",
+                    data=buffer,
+                    file_name="texto_extraido_D0.txt",
+                    mime="text/plain"
+                )
+    # -------------------------
+    # Aba D0 - Em manutenção
+    # -------------------------
+    with tab3:
+        st.header("🧱 D0 - Em manutenção")
+        st.info("Esta aba está em manutenção e será liberada em breve.")
