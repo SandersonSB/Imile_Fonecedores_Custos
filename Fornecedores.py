@@ -163,328 +163,329 @@ if not st.session_state.iniciado:
 else:
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "📄 Pollynesse (D0)", "🧱 D0 - Em manutenção"])
 
-    # -------------------------
-    # Aba Blitz (original mantida)
-    # -------------------------
-    with tab1:
-        st.header("📂 Upload do PDF de Apontamentos")
-        uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
+# -------------------------
+# Aba Blitz (com verificação de PDF escaneado)
+# -------------------------
+with tab1:
+    st.header("📂 Upload do PDF de Apontamentos")
+    uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
 
-        if uploaded_file:
-            st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+    if uploaded_file:
+        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
-            # 🚨 Verifica se o PDF é escaneado (sem texto)
-            with pdfplumber.open(uploaded_file) as pdf_temp:
-                tem_texto = any(p.extract_text() for p in pdf_temp.pages)
+        # 🚨 Verifica se o PDF é escaneado (sem texto)
+        with pdfplumber.open(uploaded_file) as pdf_temp:
+            tem_texto = any(p.extract_text() for p in pdf_temp.pages)
 
-            if not tem_texto:
-                st.warning("⚠️ Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-                continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-                if continuar == "Não":
-                    st.stop()
+        if not tem_texto:
+            st.warning("⚠️ Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
+            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
+            if continuar == "Não":
+                st.stop()
 
-            # (a partir daqui segue sua lógica original SEM ALTERAÇÃO)
-            lista_temas_mestra = [
-                "FALTA SEM JUSTIFICATIVA",
-                "ABONO DE HORAS",
-                "DECLARAÇÃO DE HORAS",
-                "AJUSTE DE HORAS",
-                "ATESTADO MÉDICO",
-                "FOLGA HABILITADA",
-                "SAÍDA ANTECIPADA"
-            ]
+        # Lógica original da Blitz continua exatamente igual
+        lista_temas_mestra = [
+            "FALTA SEM JUSTIFICATIVA",
+            "ABONO DE HORAS",
+            "DECLARAÇÃO DE HORAS",
+            "AJUSTE DE HORAS",
+            "ATESTADO MÉDICO",
+            "FOLGA HABILITADA",
+            "SAÍDA ANTECIPADA"
+        ]
 
-            dados_funcionarios = []
-            detalhes = []
+        dados_funcionarios = []
+        detalhes = []
 
-            with pdfplumber.open(uploaded_file) as pdf:
-                for i, pagina in enumerate(pdf.pages):
-                    texto = pagina.extract_text()
-                    tabela = pagina.extract_table()
-                    if not texto and not tabela:
-                        continue
-                    linhas = texto.split("\n") if texto else []
+        with pdfplumber.open(uploaded_file) as pdf:
+            for i, pagina in enumerate(pdf.pages):
+                texto = pagina.extract_text()
+                tabela = pagina.extract_table()
+                if not texto and not tabela:
+                    continue
+                linhas = texto.split("\n") if texto else []
 
-                    funcionario = {
-                        "pagina": i+1,
-                        "nome": None,
-                        "cpf": None,
-                        "matricula": None,
-                        "cargo": None,
-                        "centro_custo": None,
-                        "total_trabalhado": "00:00",
-                        "total_noturno": "00:00",
-                        "horas_previstas": "00:00",
-                        "faltas": 0,
-                        "horas_atraso": "00:00",
-                        "extra_50": "00:00",
-                        "desconta_dsr": 0,
-                        "status": None,
-                    }
-                    for tema in lista_temas_mestra:
-                        funcionario[tema] = 0
+                funcionario = {
+                    "pagina": i+1,
+                    "nome": None,
+                    "cpf": None,
+                    "matricula": None,
+                    "cargo": None,
+                    "centro_custo": None,
+                    "total_trabalhado": "00:00",
+                    "total_noturno": "00:00",
+                    "horas_previstas": "00:00",
+                    "faltas": 0,
+                    "horas_atraso": "00:00",
+                    "extra_50": "00:00",
+                    "desconta_dsr": 0,
+                    "status": None,
+                }
+                for tema in lista_temas_mestra:
+                    funcionario[tema] = 0
 
-                    for linha in linhas:
-                        if "NOME DO FUNCIONÁRIO:" in linha:
-                            funcionario["nome"] = linha.split("NOME DO FUNCIONÁRIO:")[-1].split("CPF")[0].strip()
-                            funcionario["cpf"] = linha.split("CPF DO FUNCIONÁRIO:")[-1].split("SEG")[0].strip()
-                        elif "NÚMERO DE MATRÍCULA:" in linha:
-                            funcionario["matricula"] = linha.split("NÚMERO DE MATRÍCULA:")[-1].split("NOME DO DEPARTAMENTO")[0].strip()
-                        elif "NOME DO CARGO:" in linha:
-                            funcionario["cargo"] = linha.split("NOME DO CARGO:")[-1].split("QUI")[0].strip()
-                        elif "NOME DO CENTRO DE CUSTO:" in linha:
-                            funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip()
+                for linha in linhas:
+                    if "NOME DO FUNCIONÁRIO:" in linha:
+                        funcionario["nome"] = linha.split("NOME DO FUNCIONÁRIO:")[-1].split("CPF")[0].strip()
+                        funcionario["cpf"] = linha.split("CPF DO FUNCIONÁRIO:")[-1].split("SEG")[0].strip()
+                    elif "NÚMERO DE MATRÍCULA:" in linha:
+                        funcionario["matricula"] = linha.split("NÚMERO DE MATRÍCULA:")[-1].split("NOME DO DEPARTAMENTO")[0].strip()
+                    elif "NOME DO CARGO:" in linha:
+                        funcionario["cargo"] = linha.split("NOME DO CARGO:")[-1].split("QUI")[0].strip()
+                    elif "NOME DO CENTRO DE CUSTO:" in linha:
+                        funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip()
 
-                    # Processamento da tabela
-                    if tabela:
-                        cabecalho = tabela[0]
-                        for linha_tabela in tabela:
-                            if linha_tabela[0] and "TOTAIS" in linha_tabela[0].upper():
-                                for titulo, valor in zip(cabecalho, linha_tabela):
-                                    chave = normalizar_nome_coluna(titulo)
-                                    if chave:
-                                        if chave in ["faltas", "desconta_dsr"]:
-                                            funcionario[chave] = int(valor) if valor and valor.isdigit() else 0
-                                        else:
-                                            funcionario[chave] = padronizar_tempo(valor)
-                        if funcionario["extra_50"] == funcionario["horas_previstas"]:
-                            funcionario["extra_50"] = "00:00"
+                # Processamento da tabela
+                if tabela:
+                    cabecalho = tabela[0]
+                    for linha_tabela in tabela:
+                        if linha_tabela[0] and "TOTAIS" in linha_tabela[0].upper():
+                            for titulo, valor in zip(cabecalho, linha_tabela):
+                                chave = normalizar_nome_coluna(titulo)
+                                if chave:
+                                    if chave in ["faltas", "desconta_dsr"]:
+                                        funcionario[chave] = int(valor) if valor and valor.isdigit() else 0
+                                    else:
+                                        funcionario[chave] = padronizar_tempo(valor)
+                    if funcionario["extra_50"] == funcionario["horas_previstas"]:
+                        funcionario["extra_50"] = "00:00"
 
-                    # Processamento de temas
-                    encontrou_alteracoes = False
-                    for linha_texto in linhas:
-                        linha_clean = limpar_texto(linha_texto)
-                        if not encontrou_alteracoes:
-                            if "ALTERACAO" in linha_clean:
-                                encontrou_alteracoes = True
-                                continue
-                        if "BLITZ RECURSOS HUMANOS" in linha_clean:
-                            break
-                        linha_final = re.sub(r'\d{2}/\d{2}/\d{4}', '', linha_texto)
-                        linha_final = re.sub(r'\d{1,2}:\d{2}(:\d{2})?', '', linha_final)
-                        linha_final = re.sub(r'\d+', '', linha_final).strip()
-                        if not linha_final:
+                # Processamento de temas
+                encontrou_alteracoes = False
+                for linha_texto in linhas:
+                    linha_clean = limpar_texto(linha_texto)
+                    if not encontrou_alteracoes:
+                        if "ALTERACAO" in linha_clean:
+                            encontrou_alteracoes = True
                             continue
-                        tema_encontrado = achar_tema_mais_proximo(linha_final, lista_temas_mestra)
-                        if tema_encontrado:
-                            funcionario[tema_encontrado] += 1
+                    if "BLITZ RECURSOS HUMANOS" in linha_clean:
+                        break
+                    linha_final = re.sub(r'\d{2}/\d{2}/\d{4}', '', linha_texto)
+                    linha_final = re.sub(r'\d{1,2}:\d{2}(:\d{2})?', '', linha_final)
+                    linha_final = re.sub(r'\d+', '', linha_final).strip()
+                    if not linha_final:
+                        continue
+                    tema_encontrado = achar_tema_mais_proximo(linha_final, lista_temas_mestra)
+                    if tema_encontrado:
+                        funcionario[tema_encontrado] += 1
 
-                    if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
-                        funcionario["status"] = "NOK"
-                    else:
-                        funcionario["status"] = "OK"
-
-                    dados_funcionarios.append(funcionario)
-
-                    # Processamento detalhado da tabela
-                    if tabela:
-                        for linha_detalhe in tabela[1:]:
-                            linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
-                            if not linha_detalhe or linha_detalhe[0].upper() == "TOTAIS":
-                                continue
-                            data_split = linha_detalhe[0].split(" - ")
-                            data = data_split[0].strip()
-                            semana = data_split[1].strip() if len(data_split) > 1 else ""
-                            registro = {
-                                "pagina": i+1,
-                                "nome": funcionario["nome"],
-                                "cpf": funcionario["cpf"],
-                                "data": data,
-                                "semana": semana,
-                                "previsto": linha_detalhe[1] if len(linha_detalhe) > 1 else "",
-                                "ent_1": linha_detalhe[2] if len(linha_detalhe) > 2 else "",
-                                "sai_1": linha_detalhe[3] if len(linha_detalhe) > 3 else "",
-                                "ent_2": linha_detalhe[4] if len(linha_detalhe) > 4 else "",
-                                "sai_2": linha_detalhe[5] if len(linha_detalhe) > 5 else "",
-                                "total_trabalhado": linha_detalhe[6] if len(linha_detalhe) > 6 else "",
-                                "total_noturno": linha_detalhe[7] if len(linha_detalhe) > 7 else "",
-                                "horas_previstas": linha_detalhe[8] if len(linha_detalhe) > 8 else "",
-                                "faltas": linha_detalhe[9] if len(linha_detalhe) > 9 else "",
-                                "horas_atraso": linha_detalhe[10] if len(linha_detalhe) > 10 else "",
-                                "extra_50": linha_detalhe[11] if len(linha_detalhe) > 11 else "",
-                                "desconta_dsr": linha_detalhe[12] if len(linha_detalhe) > 12 else "",
-                            }
-                            detalhes.append(registro)
-
-            # Criar DataFrames
-            df = pd.DataFrame(dados_funcionarios).fillna(0)
-            df_detalhe = pd.DataFrame(detalhes)
-            colunas_justificativas = lista_temas_mestra
-            df_consolidado = df.drop(columns=colunas_justificativas)
-
-            # Validação da hora trabalhada
-            valores_validacao = []
-            for _, row in df_detalhe.iterrows():
-                total_minutos = (
-                    hora_para_minutos(limpa_valor(row.get("sai_1"))) - hora_para_minutos(limpa_valor(row.get("ent_1"))) +
-                    hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
-                )
-                previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
-                if total_minutos > previsto_minutos:
-                    status = "Carga Horaria Completa - Fez Hora Extra"
-                elif total_minutos == previsto_minutos:
-                    status = "Carga Horaria Completa"
+                if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
+                    funcionario["status"] = "NOK"
                 else:
-                    status = "Carga Horaria Incompleta"
-                valores_validacao.append(status)
-            df_detalhe["Validação da hora trabalhada"] = valores_validacao
+                    funcionario["status"] = "OK"
 
-            # Colunas de horário válidas
-            for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
-                df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
+                dados_funcionarios.append(funcionario)
 
-            # Determinar situação do dia
-            def determinar_situacao(row):
-                valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]),
-                           limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
-                textos = [v for v in valores if v and not eh_horario(v)]
-                if textos:
-                    return textos[0].upper()
-                horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
-                if all(horarios_validos):
-                    return "Dia normal de trabalho"
-                if any(horarios_validos):
-                    return "Presença parcial"
-                return "Dia incompleto"
+                # Processamento detalhado da tabela
+                if tabela:
+                    for linha_detalhe in tabela[1:]:
+                        linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
+                        if not linha_detalhe or linha_detalhe[0].upper() == "TOTAIS":
+                            continue
+                        data_split = linha_detalhe[0].split(" - ")
+                        data = data_split[0].strip()
+                        semana = data_split[1].strip() if len(data_split) > 1 else ""
+                        registro = {
+                            "pagina": i+1,
+                            "nome": funcionario["nome"],
+                            "cpf": funcionario["cpf"],
+                            "data": data,
+                            "semana": semana,
+                            "previsto": linha_detalhe[1] if len(linha_detalhe) > 1 else "",
+                            "ent_1": linha_detalhe[2] if len(linha_detalhe) > 2 else "",
+                            "sai_1": linha_detalhe[3] if len(linha_detalhe) > 3 else "",
+                            "ent_2": linha_detalhe[4] if len(linha_detalhe) > 4 else "",
+                            "sai_2": linha_detalhe[5] if len(linha_detalhe) > 5 else "",
+                            "total_trabalhado": linha_detalhe[6] if len(linha_detalhe) > 6 else "",
+                            "total_noturno": linha_detalhe[7] if len(linha_detalhe) > 7 else "",
+                            "horas_previstas": linha_detalhe[8] if len(linha_detalhe) > 8 else "",
+                            "faltas": linha_detalhe[9] if len(linha_detalhe) > 9 else "",
+                            "horas_atraso": linha_detalhe[10] if len(linha_detalhe) > 10 else "",
+                            "extra_50": linha_detalhe[11] if len(linha_detalhe) > 11 else "",
+                            "desconta_dsr": linha_detalhe[12] if len(linha_detalhe) > 12 else "",
+                        }
+                        detalhes.append(registro)
 
-            df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
-            df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
+        # Criar DataFrames
+        df = pd.DataFrame(dados_funcionarios).fillna(0)
+        df_detalhe = pd.DataFrame(detalhes)
+        colunas_justificativas = lista_temas_mestra
+        df_consolidado = df.drop(columns=colunas_justificativas)
 
-            # Reavaliar dias incompletos
-            df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
+        # Validação da hora trabalhada
+        valores_validacao = []
+        for _, row in df_detalhe.iterrows():
+            total_minutos = (
+                hora_para_minutos(limpa_valor(row.get("sai_1"))) - hora_para_minutos(limpa_valor(row.get("ent_1"))) +
+                hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
+            )
+            previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
+            if total_minutos > previsto_minutos:
+                status = "Carga Horaria Completa - Fez Hora Extra"
+            elif total_minutos == previsto_minutos:
+                status = "Carga Horaria Completa"
+            else:
+                status = "Carga Horaria Incompleta"
+            valores_validacao.append(status)
+        df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
-            def reavaliar_situacao(row):
-                if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
-                    return "Dia normal de trabalho"
-                entradas_saidas = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")),
-                                   limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
-                if all(v == "" for v in entradas_saidas):
-                    return "Dia não previsto"
-                textos = [v for v in entradas_saidas if v and not eh_horario(v)]
-                if textos:
-                    return textos[0].upper()
+        # Colunas de horário válidas
+        for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+            df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
+
+        # Determinar situação do dia
+        def determinar_situacao(row):
+            valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]),
+                       limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
+            textos = [v for v in valores if v and not eh_horario(v)]
+            if textos:
+                return textos[0].upper()
+            horarios_validos = [row["ent_1_valido"], row["sai_1_valido"], row["ent_2_valido"], row["sai_2_valido"]]
+            if all(horarios_validos):
+                return "Dia normal de trabalho"
+            if any(horarios_validos):
                 return "Presença parcial"
+            return "Dia incompleto"
 
-            df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
+        df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
+        df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
 
-            df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
+        # Reavaliar dias incompletos
+        df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
 
-            # Correção de situações
-            def pegar_correcao(row):
-                for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
-                    val = limpa_valor(row.get(col))
-                    if val:
-                        return val
-                return ""
+        def reavaliar_situacao(row):
+            if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
+                return "Dia normal de trabalho"
+            entradas_saidas = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")),
+                               limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
+            if all(v == "" for v in entradas_saidas):
+                return "Dia não previsto"
+            textos = [v for v in entradas_saidas if v and not eh_horario(v)]
+            if textos:
+                return textos[0].upper()
+            return "Presença parcial"
 
-            df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
-            df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
+        df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
 
-            # Regras para números no início da situação
-            def regra_numero_inicio(row):
-                situacao = limpa_valor(row["Situação"])
-                if situacao and situacao[0].isdigit():
-                    total_trab = limpa_valor(row.get("total_trabalhado"))
-                    if eh_horario(total_trab) and total_trab != "00:00":
-                        return "Dia normal de trabalho"
-                    else:
-                        previsto = limpa_valor(row.get("previsto")).upper()
-                        return previsto if previsto else "Dia não previsto"
-                return situacao
+        df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
 
-            df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
+        # Correção de situações
+        def pegar_correcao(row):
+            for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+                val = limpa_valor(row.get(col))
+                if val:
+                    return val
+            return ""
 
-            # Contagem por situação
-            situacoes_unicas = df_detalhe["Situação"].unique()
-            for sit in situacoes_unicas:
-                nome_col = f"Qtd - {sit}"
-                df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
+        df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
+        df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
 
-            # Preparar downloads
-            output_consolidado = BytesIO()
-            df_consolidado.to_excel(output_consolidado, index=False)
-            output_consolidado.seek(0)
+        # Regras para números no início da situação
+        def regra_numero_inicio(row):
+            situacao = limpa_valor(row["Situação"])
+            if situacao and situacao[0].isdigit():
+                total_trab = limpa_valor(row.get("total_trabalhado"))
+                if eh_horario(total_trab) and total_trab != "00:00":
+                    return "Dia normal de trabalho"
+                else:
+                    previsto = limpa_valor(row.get("previsto")).upper()
+                    return previsto if previsto else "Dia não previsto"
+            return situacao
 
-            output_detalhe = BytesIO()
-            df_detalhe.to_excel(output_detalhe, index=False)
-            output_detalhe.seek(0)
+        df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
-            st.download_button(
-                label="⬇️ Baixar consolidado_blitz.xlsx",
-                data=output_consolidado,
-                file_name="consolidado_blitz.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        # Contagem por situação
+        situacoes_unicas = df_detalhe["Situação"].unique()
+        for sit in situacoes_unicas:
+            nome_col = f"Qtd - {sit}"
+            df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-            st.download_button(
-                label="⬇️ Baixar detalhe_funcionarios.xlsx",
-                data=output_detalhe,
-                file_name="detalhe_funcionarios.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        # Preparar downloads
+        output_consolidado = BytesIO()
+        df_consolidado.to_excel(output_consolidado, index=False)
+        output_consolidado.seek(0)
 
-    # -------------------------
-    # Aba Polly
-    # -------------------------
-    with tab2:
-        st.header("📄 Extração de Texto e Tabelas - Polly")
-        uploaded_d0 = st.file_uploader("Selecione o arquivo PDF (D0)", type=["pdf"], key="upload_d0")
-        if uploaded_d0:
-            st.success(f"Arquivo {uploaded_d0.name} carregado com sucesso!")
-            textos_paginas = []
-            tabelas_encontradas = []
+        output_detalhe = BytesIO()
+        df_detalhe.to_excel(output_detalhe, index=False)
+        output_detalhe.seek(0)
 
-            with pdfplumber.open(uploaded_d0) as pdf:
-                st.write(f"📚 Total de páginas detectadas: **{len(pdf.pages)}**")
-                for i, pagina in enumerate(pdf.pages):
-                    texto = pagina.extract_text() or ""
-                    if texto.strip():
-                        textos_paginas.append(f"### Página {i+1}\n\n{texto}\n\n")
-                    else:
-                        textos_paginas.append(f"### Página {i+1}\n> ⚠️ Nenhum texto detectado (imagem escaneada)")
-                    tabela = pagina.extract_table()
-                    if tabela:
-                        df_tabela = pd.DataFrame(tabela[1:], columns=tabela[0])
-                        tabelas_encontradas.append((i+1, df_tabela))
+        st.download_button(
+            label="⬇️ Baixar consolidado_blitz.xlsx",
+            data=output_consolidado,
+            file_name="consolidado_blitz.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
-            st.subheader("📜 Texto extraído")
-            for bloco in textos_paginas:
-                st.markdown(bloco)
+        st.download_button(
+            label="⬇️ Baixar detalhe_funcionarios.xlsx",
+            data=output_detalhe,
+            file_name="detalhe_funcionarios.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
-            st.subheader("📊 Tabelas detectadas")
-            if tabelas_encontradas:
-                for i, tabela_df in tabelas_encontradas:
-                    st.markdown(f"**Tabela detectada na página {i}:**")
-                    st.dataframe(tabela_df)
-            else:
-                st.info("Nenhuma tabela detectada em nenhuma página.")
 
-            # Preparar download de texto
-            texto_completo = "\n\n".join([b for b in textos_paginas])
-            buffer = BytesIO()
-            buffer.write(texto_completo.encode("utf-8"))
-            buffer.seek(0)
+# -------------------------
+# Aba Polly (com verificação de PDF escaneado)
+# -------------------------
+with tab2:
+    st.header("📄 Extração de Texto e Tabelas - Polly")
+    uploaded_d0 = st.file_uploader("Selecione o arquivo PDF (D0)", type=["pdf"], key="upload_d0")
 
-            # Download com alerta se PDF é imagem
-            if pdf_pode_ser_imagem(uploaded_d0):
-                continuar = alerta_pdf_imagem(
-                    "O PDF parece ser escaneado (imagem). Pode não ler corretamente.",
-                    key="alert_d0"
-                )
-                if continuar:
-                    st.download_button(
-                        label="⬇️ Baixar texto extraído (D0)",
-                        data=buffer,
-                        file_name="texto_extraido_D0.txt",
-                        mime="text/plain"
-                    )
-            else:
-                st.download_button(
-                    label="⬇️ Baixar texto extraído (D0)",
-                    data=buffer,
-                    file_name="texto_extraido_D0.txt",
-                    mime="text/plain"
-                )
+    if uploaded_d0:
+        st.success(f"Arquivo {uploaded_d0.name} carregado com sucesso!")
+
+        # 🚨 Verifica se o PDF é escaneado (sem texto)
+        with pdfplumber.open(uploaded_d0) as pdf_temp:
+            tem_texto = any(p.extract_text() for p in pdf_temp.pages)
+
+        if not tem_texto:
+            st.warning("⚠️ Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
+            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
+            if continuar == "Não":
+                st.stop()
+
+        textos_paginas = []
+        tabelas_encontradas = []
+
+        with pdfplumber.open(uploaded_d0) as pdf:
+            st.write(f"📚 Total de páginas detectadas: **{len(pdf.pages)}**")
+            for i, pagina in enumerate(pdf.pages):
+                texto = pagina.extract_text() or ""
+                if texto.strip():
+                    textos_paginas.append(f"### Página {i+1}\n\n{texto}\n\n")
+                else:
+                    textos_paginas.append(f"### Página {i+1}\n> ⚠️ Nenhum texto detectado (imagem escaneada)")
+                tabela = pagina.extract_table()
+                if tabela:
+                    df_tabela = pd.DataFrame(tabela[1:], columns=tabela[0])
+                    tabelas_encontradas.append((i+1, df_tabela))
+
+        st.subheader("📜 Texto extraído")
+        for bloco in textos_paginas:
+            st.markdown(bloco)
+
+        st.subheader("📊 Tabelas detectadas")
+        if tabelas_encontradas:
+            for i, tabela_df in tabelas_encontradas:
+                st.markdown(f"**Tabela detectada na página {i}:**")
+                st.dataframe(tabela_df)
+        else:
+            st.info("Nenhuma tabela detectada em nenhuma página.")
+
+        # Preparar download de texto
+        texto_completo = "\n\n".join([b for b in textos_paginas])
+        buffer = BytesIO()
+        buffer.write(texto_completo.encode("utf-8"))
+        buffer.seek(0)
+
+        # Download do texto extraído
+        st.download_button(
+            label="⬇️ Baixar texto extraído (D0)",
+            data=buffer,
+            file_name="texto_extraido_D0.txt",
+            mime="text/plain"
+        )
+
 
     # -------------------------
     # Aba D0 - Em manutenção
