@@ -216,13 +216,18 @@ def processar_texto_blitz(linhas, funcionario):
             funcionario[tema_encontrado] += 1
 
 def processar_pdf_blitz(uploaded_file):
-    st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+        if uploaded_d0:
+        # 🚨 Verifica ANTES se o PDF é escaneado
+        with pdfplumber.open(uploaded_d0) as pdf_temp:
+            tem_texto = any(p.extract_text() for p in pdf_temp.pages)
 
-    if not pdf_possui_texto(uploaded_file):
-        alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-        continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-        if continuar == "Não":
-            st.stop()
+        if not tem_texto:
+            alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
+            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
+            if continuar == "Não":
+                st.stop()
+        else:
+            st.success(f"Arquivo {uploaded_d0.name} carregado com sucesso!")
 
     dados_funcionarios = []
     detalhes = []
@@ -424,9 +429,9 @@ def main():
 
     with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
-        uploaded_d0 = st.file_uploader("Selecione o arquivo PDF (D0)", type=["pdf"], key="upload_d0")
-        if uploaded_d0:
-            processar_pdf_pollynesse(uploaded_d0)
+        uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="upload_polly")
+        if uploaded_polly:
+            processar_pdf_pollynesse(uploaded_polly)
 
     with tab3:
         st.header("🧱 D0 - Em manutenção")
