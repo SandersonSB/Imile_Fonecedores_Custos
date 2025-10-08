@@ -1,6 +1,5 @@
 # ==========================================================
-# Fornecedores.py - Sistema de Processamento de Fornecedores
-# Empresa: Imile (Cores: Azul e Amarelo)
+# Fornecedores.py - Assistente de Custos | Imile
 # ==========================================================
 
 import streamlit as st
@@ -32,6 +31,90 @@ TEMAS_POSSIVEIS = [
     "FOLGA HABILITADA",
     "SAÍDA ANTECIPADA"
 ]
+
+# ==========================================================
+# ESTILO VISUAL IMILE
+# ==========================================================
+
+def aplicar_estilo_imile():
+    st.markdown("""
+    <style>
+    /* Header */
+    .header {
+        background: linear-gradient(90deg, #004080, #FFC107);
+        padding: 25px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        border: 3px solid white;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    }
+    .header h1 {
+        margin: 0;
+        font-size: 44px;
+        font-weight: bold;
+    }
+    .header p {
+        margin: 5px 0 0 0;
+        font-size: 20px;
+        font-weight: 500;
+        color: #f9f9f9;
+    }
+
+    /* Cards */
+    .card {
+        background-color: #f2f6fc;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #004080;
+        border: 2px solid #004080;
+    }
+
+    /* Footer */
+    .footer {
+        background: linear-gradient(90deg, #004080, #FFC107);
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        border: 2px solid white;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        margin-top: 40px;
+    }
+    .footer p {
+        margin: 0;
+        font-size: 16px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def header_imile():
+    st.markdown("""
+    <div class="header">
+        <h1>IMILE</h1>
+        <p>Assistente de Custos - Controle de Apontamentos</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+def card_boas_vindas():
+    st.markdown("""
+    <div class="card">
+        <p>Bem-vindo ao <strong>Assistente de Custos da Imile</strong>! 
+        Analise apontamentos de funcionários, valide horários e gere relatórios de forma clara e elegante.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+def footer_imile():
+    st.markdown("""
+    <div class="footer">
+        <p>© 2025 IMILE - Assistente de Custos | Todos os direitos reservados</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================================
 # FUNÇÕES UTILITÁRIAS
@@ -112,40 +195,14 @@ def alerta_pdf_imagem(mensagem: str):
     </div>
     """, unsafe_allow_html=True)
 
-def estilo_pagina():
-    st.markdown(f"""
-        <style>
-        .splash-container {{
-            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 80vh;
-        }}
-        .desc-text {{
-            color: {CORES_IMILE['cinza']}; font-size: 18px; max-width: 700px; margin: 10px auto 30px auto;
-        }}
-        div.stButton {{ display: flex; justify-content: center; }}
-        div.stButton > button {{
-            height: 60px; width: 250px; font-size: 22px; background-color: {CORES_IMILE['azul']}; color: white;
-        }}
-        div.stButton > button:hover {{
-            background-color: {CORES_IMILE['amarelo']}; transform: scale(1.05); transition: all 0.3s ease;
-        }}
-        </style>
-    """, unsafe_allow_html=True)
-
 # ==========================================================
 # TELA INICIAL
 # ==========================================================
 
 def tela_inicial():
-    estilo_pagina()
-    st.markdown(f"""
-        <div class="splash-container">
-            <h1 style="color: {CORES_IMILE['azul']};">📊 Sistema de Processamento de Dados de Fornecedores</h1>
-            <p class="desc-text">
-                Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.
-            </p>
-            <img src="https://github.com/SandersonSB/Imile_Fonecedores_Custos/blob/main/Gemini_Generated_Image_wjo0iiwjo0iiwjo0.png?raw=true" width="600">
-        </div>
-    """, unsafe_allow_html=True)
+    aplicar_estilo_imile()
+    header_imile()
+    card_boas_vindas()
 
     col1, col2, col3 = st.columns([3, 2, 2])
     with col2:
@@ -230,7 +287,6 @@ def processar_pdf_blitz(uploaded_file):
 
     st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
-    # ---------- restante do processamento ----------
     dados_funcionarios = []
     detalhes = []
 
@@ -418,14 +474,18 @@ def processar_pdf_pollynesse(uploaded_file):
 # ==========================================================
 
 def main():
-    st.set_page_config(page_title="Imile - Processamento de Fornecedores", layout="wide", page_icon="📊")
+    st.set_page_config(page_title="Imile - Assistente de Custos", layout="wide", page_icon="📊")
 
     if "iniciado" not in st.session_state:
         st.session_state.iniciado = False
 
     if not st.session_state.iniciado:
         tela_inicial()
+        footer_imile()
         return
+
+    aplicar_estilo_imile()
+    header_imile()
 
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "📄 Pollynesse (D0)", "🧱 D0 - Em manutenção"])
 
@@ -444,6 +504,8 @@ def main():
     with tab3:
         st.header("🧱 D0 - Em manutenção")
         st.info("Esta aba está em manutenção e será liberada em breve.")
+
+    footer_imile()
 
 # ==========================================================
 # EXECUÇÃO
