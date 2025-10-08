@@ -216,9 +216,9 @@ def processar_texto_blitz(linhas, funcionario):
             funcionario[tema_encontrado] += 1
 
 def processar_pdf_blitz(uploaded_file):
-        if uploaded_d0:
+        if uploaded_polly:
         # 🚨 Verifica ANTES se o PDF é escaneado
-        with pdfplumber.open(uploaded_d0) as pdf_temp:
+        with pdfplumber.open(uploaded_polly) as pdf_temp:
             tem_texto = any(p.extract_text() for p in pdf_temp.pages)
 
         if not tem_texto:
@@ -227,7 +227,7 @@ def processar_pdf_blitz(uploaded_file):
             if continuar == "Não":
                 st.stop()
         else:
-            st.success(f"Arquivo {uploaded_d0.name} carregado com sucesso!")
+            st.success(f"Arquivo {uploaded_polly.name} carregado com sucesso!")
 
     dados_funcionarios = []
     detalhes = []
