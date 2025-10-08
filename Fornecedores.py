@@ -226,13 +226,7 @@ def processar_pdf_blitz(uploaded_file):
         if continuar == "Não":
             st.stop()
     else:
-        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")        if not tem_texto:
-            alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-            if continuar == "Não":
-                st.stop()
-        else:
-            st.success(f"Arquivo {uploaded_polly.name} carregado com sucesso!")
+        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
     dados_funcionarios = []
     detalhes = []
@@ -362,13 +356,17 @@ def processar_pdf_blitz(uploaded_file):
     )
 
 def processar_pdf_pollynesse(uploaded_file):
-    st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+    # 🚨 Verifica ANTES se o PDF é escaneado
+    with pdfplumber.open(uploaded_file) as pdf_temp:
+        tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
 
-    if not pdf_possui_texto(uploaded_file):
+    if not tem_texto:
         alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
         continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
         if continuar == "Não":
             st.stop()
+    else:
+        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
     textos_paginas = []
     tabelas_encontradas = []
@@ -435,18 +433,8 @@ def main():
     with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
         uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="upload_polly")
-            if uploaded_polly:
-        # 🚨 Verifica ANTES se o PDF é escaneado
-        with pdfplumber.open(uploaded_polly) as pdf_temp:
-            tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
-
-        if not tem_texto:
-            alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-            if continuar == "Não":
-                st.stop()
-        else:
-            st.success(f"Arquivo {uploaded_polly.name} carregado com sucesso!")
+        if uploaded_polly:
+            processar_pdf_pollynesse(uploaded_polly)
 
     with tab3:
         st.header("🧱 D0 - Em manutenção")
