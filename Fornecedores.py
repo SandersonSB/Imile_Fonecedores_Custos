@@ -216,18 +216,21 @@ def processar_texto_blitz(linhas, funcionario):
             funcionario[tema_encontrado] += 1
 
 def processar_pdf_blitz(uploaded_file):
-    # 🚨 Verifica ANTES se o PDF é escaneado
+    # 🚨 Rejeita PDF escaneado sem perguntar
     with pdfplumber.open(uploaded_file) as pdf_temp:
         tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
 
     if not tem_texto:
-        alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-        continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-        if continuar == "Não":
-            st.stop()
-    else:
-        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+        alerta_pdf_imagem("Arquivo rejeitado: PDF escaneado (imagem) não é suportado.")
+        st.warning("⚠️ Por favor, anexe um PDF com texto selecionável.")
+        # Limpa o arquivo e reinicia
+        st.session_state["uploaded_blitz"] = None
+        st.rerun()
+        return
 
+    st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+
+    # ---------- restante do processamento ----------
     dados_funcionarios = []
     detalhes = []
 
@@ -356,17 +359,19 @@ def processar_pdf_blitz(uploaded_file):
     )
 
 def processar_pdf_pollynesse(uploaded_file):
-    # 🚨 Verifica ANTES se o PDF é escaneado
+    # 🚨 Rejeita PDF escaneado sem perguntar
     with pdfplumber.open(uploaded_file) as pdf_temp:
         tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
 
     if not tem_texto:
-        alerta_pdf_imagem("Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-        continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-        if continuar == "Não":
-            st.stop()
-    else:
-        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+        alerta_pdf_imagem("Arquivo rejeitado: PDF escaneado (imagem) não é suportado.")
+        st.warning("⚠️ Por favor, anexe um PDF com texto selecionável.")
+        # Limpa o arquivo e reinicia
+        st.session_state["uploaded_polly"] = None
+        st.rerun()
+        return
+
+    st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
     textos_paginas = []
     tabelas_encontradas = []
@@ -426,13 +431,13 @@ def main():
 
     with tab1:
         st.header("📂 Upload do PDF de Apontamentos")
-        uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
+        uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"], key="uploaded_blitz")
         if uploaded_file:
             processar_pdf_blitz(uploaded_file)
 
     with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
-        uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="upload_polly")
+        uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
         if uploaded_polly:
             processar_pdf_pollynesse(uploaded_polly)
 
