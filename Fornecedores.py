@@ -65,7 +65,7 @@ def hora_para_minutos(hora):
         return 0
     try:
         h, m = map(int, hora.split(":"))
-        return h*60 + m
+        return h * 60 + m
     except:
         return 0
 
@@ -89,8 +89,8 @@ def eh_horario(valor):
 # =========================
 # Função para detectar PDFs possivelmente escaneados
 # =========================
+
 def pdf_pode_ser_imagem(pdf_file, limiar_texto=0.1):
-    import pdfplumber
     with pdfplumber.open(pdf_file) as pdf:
         total_paginas = len(pdf.pages)
         paginas_com_texto = sum(1 for p in pdf.pages if p.extract_text() and p.extract_text().strip())
@@ -100,6 +100,7 @@ def pdf_pode_ser_imagem(pdf_file, limiar_texto=0.1):
 # =========================
 # Função de alerta estilizado para PDFs possivelmente escaneados
 # =========================
+
 def alerta_pdf_imagem(mensagem, key=None):
     st.markdown(f"""
     <div style="
@@ -117,6 +118,7 @@ def alerta_pdf_imagem(mensagem, key=None):
 # =========================
 # Configuração do Streamlit
 # =========================
+
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
@@ -157,38 +159,40 @@ if not st.session_state.iniciado:
 # =========================
 # Resto do app só roda depois de iniciar
 # =========================
+
 else:
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "📄 Pollynesse (D0)", "🧱 D0 - Em manutenção"])
-# -------------------------
-# Aba Blitz (original mantida)
-# -------------------------
-with tab1:
-    st.header("📂 Upload do PDF de Apontamentos")
-    uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
 
-    if uploaded_file:
-        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+    # -------------------------
+    # Aba Blitz (original mantida)
+    # -------------------------
+    with tab1:
+        st.header("📂 Upload do PDF de Apontamentos")
+        uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"])
 
-        # 🚨 Verifica se o PDF é escaneado (sem texto)
-        with pdfplumber.open(uploaded_file) as pdf_temp:
-            tem_texto = any(p.extract_text() for p in pdf_temp.pages)
+        if uploaded_file:
+            st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
-        if not tem_texto:
-            st.warning("⚠️ Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
-            continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
-            if continuar == "Não":
-                st.stop()
+            # 🚨 Verifica se o PDF é escaneado (sem texto)
+            with pdfplumber.open(uploaded_file) as pdf_temp:
+                tem_texto = any(p.extract_text() for p in pdf_temp.pages)
 
-        # (a partir daqui segue sua lógica original SEM ALTERAÇÃO)
-        lista_temas_mestra = [
-            "FALTA SEM JUSTIFICATIVA",
-            "ABONO DE HORAS",
-            "DECLARAÇÃO DE HORAS",
-            "AJUSTE DE HORAS",
-            "ATESTADO MÉDICO",
-            "FOLGA HABILITADA",
-            "SAÍDA ANTECIPADA"
-        ]
+            if not tem_texto:
+                st.warning("⚠️ Este arquivo parece ser **escaneado (imagem)** e pode não ser lido corretamente.")
+                continuar = st.radio("Deseja continuar mesmo assim?", ["Não", "Sim"], horizontal=True)
+                if continuar == "Não":
+                    st.stop()
+
+            # (a partir daqui segue sua lógica original SEM ALTERAÇÃO)
+            lista_temas_mestra = [
+                "FALTA SEM JUSTIFICATIVA",
+                "ABONO DE HORAS",
+                "DECLARAÇÃO DE HORAS",
+                "AJUSTE DE HORAS",
+                "ATESTADO MÉDICO",
+                "FOLGA HABILITADA",
+                "SAÍDA ANTECIPADA"
+            ]
 
             dados_funcionarios = []
             detalhes = []
@@ -231,6 +235,7 @@ with tab1:
                         elif "NOME DO CENTRO DE CUSTO:" in linha:
                             funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip()
 
+                    # Processamento da tabela
                     if tabela:
                         cabecalho = tabela[0]
                         for linha_tabela in tabela:
@@ -245,6 +250,7 @@ with tab1:
                         if funcionario["extra_50"] == funcionario["horas_previstas"]:
                             funcionario["extra_50"] = "00:00"
 
+                    # Processamento de temas
                     encontrou_alteracoes = False
                     for linha_texto in linhas:
                         linha_clean = limpar_texto(linha_texto)
@@ -270,6 +276,7 @@ with tab1:
 
                     dados_funcionarios.append(funcionario)
 
+                    # Processamento detalhado da tabela
                     if tabela:
                         for linha_detalhe in tabela[1:]:
                             linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
@@ -299,11 +306,13 @@ with tab1:
                             }
                             detalhes.append(registro)
 
+            # Criar DataFrames
             df = pd.DataFrame(dados_funcionarios).fillna(0)
             df_detalhe = pd.DataFrame(detalhes)
             colunas_justificativas = lista_temas_mestra
             df_consolidado = df.drop(columns=colunas_justificativas)
 
+            # Validação da hora trabalhada
             valores_validacao = []
             for _, row in df_detalhe.iterrows():
                 total_minutos = (
@@ -320,11 +329,14 @@ with tab1:
                 valores_validacao.append(status)
             df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
+            # Colunas de horário válidas
             for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                 df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
 
+            # Determinar situação do dia
             def determinar_situacao(row):
-                valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]), limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
+                valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]),
+                           limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
                 textos = [v for v in valores if v and not eh_horario(v)]
                 if textos:
                     return textos[0].upper()
@@ -338,6 +350,7 @@ with tab1:
             df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
             df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True)
 
+            # Reavaliar dias incompletos
             df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
 
             def reavaliar_situacao(row):
@@ -356,6 +369,7 @@ with tab1:
 
             df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
 
+            # Correção de situações
             def pegar_correcao(row):
                 for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                     val = limpa_valor(row.get(col))
@@ -366,6 +380,7 @@ with tab1:
             df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
             df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
 
+            # Regras para números no início da situação
             def regra_numero_inicio(row):
                 situacao = limpa_valor(row["Situação"])
                 if situacao and situacao[0].isdigit():
@@ -379,11 +394,13 @@ with tab1:
 
             df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
+            # Contagem por situação
             situacoes_unicas = df_detalhe["Situação"].unique()
             for sit in situacoes_unicas:
                 nome_col = f"Qtd - {sit}"
                 df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
+            # Preparar downloads
             output_consolidado = BytesIO()
             df_consolidado.to_excel(output_consolidado, index=False)
             output_consolidado.seek(0)
@@ -406,7 +423,7 @@ with tab1:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-     # -------------------------
+    # -------------------------
     # Aba Polly
     # -------------------------
     with tab2:
@@ -433,7 +450,7 @@ with tab1:
             st.subheader("📜 Texto extraído")
             for bloco in textos_paginas:
                 st.markdown(bloco)
-            
+
             st.subheader("📊 Tabelas detectadas")
             if tabelas_encontradas:
                 for i, tabela_df in tabelas_encontradas:
@@ -441,13 +458,14 @@ with tab1:
                     st.dataframe(tabela_df)
             else:
                 st.info("Nenhuma tabela detectada em nenhuma página.")
-            
+
+            # Preparar download de texto
             texto_completo = "\n\n".join([b for b in textos_paginas])
             buffer = BytesIO()
             buffer.write(texto_completo.encode("utf-8"))
             buffer.seek(0)
 
-            # Download com alerta
+            # Download com alerta se PDF é imagem
             if pdf_pode_ser_imagem(uploaded_d0):
                 continuar = alerta_pdf_imagem(
                     "O PDF parece ser escaneado (imagem). Pode não ler corretamente.",
@@ -467,6 +485,7 @@ with tab1:
                     file_name="texto_extraido_D0.txt",
                     mime="text/plain"
                 )
+
     # -------------------------
     # Aba D0 - Em manutenção
     # -------------------------
