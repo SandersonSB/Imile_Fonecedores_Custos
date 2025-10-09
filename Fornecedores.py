@@ -1,9 +1,6 @@
 # ==========================================================
 # Fornecedores.py - Assistente de Custos | Imile
 # ==========================================================
-import subprocess
-st.text(subprocess.run(["which", "tesseract"], capture_output=True, text=True).stdout)
-st.text(subprocess.run(["which", "pdfinfo"], capture_output=True, text=True).stdout)
 import streamlit as st
 import pandas as pd
 import pdfplumber
