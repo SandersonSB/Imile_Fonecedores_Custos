@@ -509,6 +509,7 @@ def main():
 
                 # --- OCR + DataFrame (código já validado) ---
                 import pytesseract
+                pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
                 from pdf2image import convert_from_path
                 from io import BytesIO
                 import re
