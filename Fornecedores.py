@@ -487,7 +487,7 @@ def main():
     aplicar_estilo_imile()
     header_imile()
 
-    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "📄 Pollynesse (D0)", "🧱 D0 - Em manutenção"])
+    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "📂 Pollynesse", "🧱 D0 - Em manutenção"])
 
     with tab1:
         st.header("📂 Upload do PDF de Apontamentos")
@@ -495,11 +495,171 @@ def main():
         if uploaded_file:
             processar_pdf_blitz(uploaded_file)
 
-    with tab2:
+        with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
         uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
         if uploaded_polly:
-            processar_pdf_pollynesse(uploaded_polly)
+            # 1. Verifica se é PDF escaneado
+            with pdfplumber.open(uploaded_polly) as pdf_temp:
+                tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
+
+            if not tem_texto:
+                alerta_pdf_imagem("PDF escaneado detectado. Será realizada leitura via OCR (Tesseract).")
+                st.info("🔍 Iniciando OCR... isso pode levar alguns segundos.")
+
+                # --- OCR + DataFrame (código já validado) ---
+                import pytesseract
+                from pdf2image import convert_from_path
+                from io import BytesIO
+                import re
+                import os
+
+                # Salva o arquivo em disco temporário para pdf2image
+                with open("temp_polly.pdf", "wb") as f:
+                    f.write(uploaded_polly.read())
+
+                # Regexes flexíveis
+                re_nome        = re.compile(r"NOME DO FUNCIONÁRIO[:\s]*(.+?)(?:\n|\r)", re.IGNORECASE | re.UNICODE)
+                re_matricula   = re.compile(r"N[ÚU]MERO DE MATR[ÍI]CULA[:\s]*(\d+)", re.IGNORECASE | re.UNICODE)
+                re_cpf         = re.compile(r"CPF DO FUNCIONÁRIO[:\s]*(\d+)", re.IGNORECASE | re.UNICODE)
+                re_admissao    = re.compile(r"DATA DE ADMISS[ÃA]O DO FUNCIONÁRIO[:\s]*(\d{2}/\d{2}/\d{4})", re.IGNORECASE | re.UNICODE)
+                re_dia_linha   = re.compile(r"(\d{2}/\d{2}/\d{4})\s*-\s*(SEG|TER|QUA|QUI|SEX|SAB|DOM)\s*(.+)", re.IGNORECASE | re.UNICODE)
+
+                images = convert_from_path("temp_polly.pdf", dpi=300)
+                rows = []
+
+                for idx, img in enumerate(images):
+                    texto = pytesseract.image_to_string(img, lang='por')
+                    nome      = re_nome.search(texto)
+                    matricula = re_matricula.search(texto)
+                    cpf       = re_cpf.search(texto)
+                    admissao  = re_admissao.search(texto)
+
+                    nome      = nome.group(1).strip() if nome else None
+                    matricula = matricula.group(1).strip() if matricula else None
+                    cpf       = cpf.group(1).strip() if cpf else None
+                    admissao  = admissao.group(1).strip() if admissao else None
+
+                    for match in re_dia_linha.finditer(texto):
+                        dia_str, dia_semana, resto = match.groups()
+                        dia = int(dia_str[:2])
+                        resto = resto.strip()
+
+                        trabalhou = True
+                        motivo = ""
+                        observacoes = ""
+
+                        if "Folga" in resto:
+                            trabalhou = False
+                            motivo = "Folga"
+                        elif "Falta" in resto:
+                            trabalhou = False
+                            motivo = "Falta"
+                        elif "Atestado" in resto:
+                            trabalhou = False
+                            motivo = "Atestado"
+                            cid_match = re.search(r"CID\s+([A-Z0-9\.]+)", resto)
+                            if cid_match:
+                                observacoes = f"Atestado Médico (CID {cid_match.group(1)})"
+                        elif "Abonar ausencia" in resto:
+                            trabalhou = False
+                            motivo = "Abonado"
+
+                        horarios = re.findall(r"(\d{2}:\d{2})", resto)
+                        entrou_1 = horarios[0] if len(horarios) >= 1 else None
+                        saiu_1   = horarios[1] if len(horarios) >= 2 else None
+                        entrou_2 = horarios[2] if len(horarios) >= 3 else None
+                        saiu_2   = horarios[3] if len(horarios) >= 4 else None
+
+                        extras = re.findall(r"(\d{2}:\d{2})\s+(\d{2}:\d{2})", resto)
+                        horas_extras = extras[0][0] if extras else None
+
+                        rows.append({
+                            "nome": nome,
+                            "matricula": matricula,
+                            "cpf": cpf,
+                            "data_admissao": admissao,
+                            "dia": dia,
+                            "dia_semana": dia_semana,
+                            "entrou_1": entrou_1,
+                            "saiu_1": saiu_1,
+                            "entrou_2": entrou_2,
+                            "saiu_2": saiu_2,
+                            "trabalhou": trabalhou,
+                            "motivo": motivo,
+                            "horas_extras": horas_extras,
+                            "observacoes": observacoes
+                        })
+
+                df_diario = pd.DataFrame(rows)
+                df_resumo = df_diario.groupby(['nome', 'matricula']).agg(
+                    dias_trabalhados=('trabalhou', 'sum'),
+                    dias_nao_trabalhados=('trabalhou', lambda x: (x == False).sum()),
+                    atestados=('motivo', lambda x: (x == 'Atestado').sum()),
+                    faltas=('motivo', lambda x: (x == 'Falta').sum()),
+                    folgas=('motivo', lambda x: (x == 'Folga').sum()),
+                    abonados=('motivo', lambda x: (x == 'Abonado').sum()),
+                    horas_extras=('horas_extras', lambda x: pd.to_timedelta(x + ':00', errors='coerce').sum() if x.notna().any() else pd.Timedelta(0))
+                ).reset_index()
+
+                # Download
+                output_diario = BytesIO()
+                df_diario.to_excel(output_diario, index=False)
+                output_diario.seek(0)
+
+                output_resumo = BytesIO()
+                df_resumo.to_excel(output_resumo, index=False)
+                output_resumo.seek(0)
+
+                st.download_button("⬇️ Baixar relatório diário (OCR)", output_diario, "relatorio_diario_polly.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                st.download_button("⬇️ Baixar resumo por funcionário (OCR)", output_resumo, "resumo_por_funcionario_polly.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+                # Limpa arquivo temporário
+                if os.path.exists("temp_polly.pdf"):
+                    os.remove("temp_polly.pdf")
+
+            else:
+                # PDF com texto selecionável - comportamento original
+                st.success(f"Arquivo {uploaded_polly.name} carregado com sucesso!")
+                textos_paginas = []
+                tabelas_encontradas = []
+
+                with pdfplumber.open(uploaded_polly) as pdf:
+                    st.write(f"📚 Total de páginas detectadas: **{len(pdf.pages)}**")
+                    for i, pagina in enumerate(pdf.pages):
+                        texto = pagina.extract_text() or ""
+                        if texto.strip():
+                            textos_paginas.append(f"### Página {i+1}\n\n{texto}\n\n")
+                        else:
+                            textos_paginas.append(f"### Página {i+1}\n> ⚠️ Nenhum texto detectado (imagem escaneada)")
+                        tabela = pagina.extract_table()
+                        if tabela:
+                            df_tabela = pd.DataFrame(tabela[1:], columns=tabela[0])
+                            tabelas_encontradas.append((i+1, df_tabela))
+
+                st.subheader("📜 Texto extraído")
+                for bloco in textos_paginas:
+                    st.markdown(bloco)
+
+                st.subheader("📊 Tabelas detectadas")
+                if tabelas_encontradas:
+                    for i, tabela_df in tabelas_encontradas:
+                        st.markdown(f"**Tabela detectada na página {i}:**")
+                        st.dataframe(tabela_df)
+                else:
+                    st.info("Nenhuma tabela detectada em nenhuma página.")
+
+                texto_completo = "\n\n".join(textos_paginas)
+                buffer = BytesIO()
+                buffer.write(texto_completo.encode("utf-8"))
+                buffer.seek(0)
+
+                st.download_button(
+                    label="⬇️ Baixar texto extraído (D0)",
+                    data=buffer,
+                    file_name="texto_extraido_D0.txt",
+                    mime="text/plain"
+                )
 
     with tab3:
         st.header("🧱 D0 - Em manutenção")
