@@ -586,9 +586,225 @@ def main():
 
     with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
-        uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
-        if uploaded_polly:
-            processar_pdf_pollynesse(uploaded_polly)
+uploaded_polly = st.file_uploader(
+    "Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly"
+)
+
+if uploaded_polly:
+    import pdfplumber, PyPDF2, shutil, pytesseract, tempfile, os, re, io
+    from pdf2image import convert_from_path
+    from io import BytesIO
+    import pandas as pd
+
+    def erro(msg):
+        st.error(msg)
+        st.stop()
+
+    # ---------- valida ----------
+    try:
+        uploaded_polly.seek(0)
+        reader = PyPDF2.PdfReader(uploaded_polly)
+        num_pages = len(reader.pages)
+    except Exception:
+        erro("PDF inválido ou corrompido.")
+
+    # ---------- tem texto? ----------
+    with pdfplumber.open(uploaded_polly) as pdf_temp:
+        tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
+
+    if tem_texto:
+        st.success(f"Arquivo {uploaded_polly.name} carregado com texto selecionável!")
+        textos, tabelas = [], []
+        with pdfplumber.open(uploaded_polly) as pdf:
+            st.write(f"📚 Total de páginas: **{len(pdf.pages)}**")
+            for i, p in enumerate(pdf.pages):
+                texto = p.extract_text() or ""
+                textos.append(f"### Página {i+1}\n\n{texto}\n\n")
+                tbl = p.extract_table()
+                if tbl:
+                    tabelas.append((i+1, pd.DataFrame(tbl[1:], columns=tbl[0])))
+
+        st.subheader("📜 Texto extraído")
+        for bloco in textos:
+            st.markdown(bloco)
+
+        st.subheader("📊 Tabelas detectadas")
+        if tabelas:
+            for i, df in tabelas:
+                st.markdown(f"**Página {i}**")
+                st.dataframe(df)
+        else:
+            st.info("Nenhuma tabela detectada.")
+
+        txt = "\n\n".join(textos)
+        buf = BytesIO()
+        buf.write(txt.encode("utf-8"))
+        buf.seek(0)
+        st.download_button(
+            "⬇️ Texto completo (D0)", buf, "texto_extraido_D0.txt", "text/plain"
+        )
+
+    else:
+        if shutil.which("tesseract") is None:
+            erro("Tesseract não está no PATH do servidor.")
+
+        st.info("🔍 PDF escaneado – OCR por coordenadas (todas as páginas).")
+        if st.button("Rodar OCR completo"):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                tmp.write(uploaded_polly.getbuffer())
+                tmp_path = tmp.name
+
+            # ---------- funções auxiliares ----------
+            def ocr_page(image):
+                data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DATAFRAME, lang="por")
+                return data[data.conf > 0].copy()
+
+            def slice_table(df_words, y0, y1, x0, x1):
+                return df_words[
+                    (df_words.top >= y0) & (df_words.top + df_words.height <= y1) &
+                    (df_words.left >= x0) & (df_words.left + df_words.width <= x1)
+                ]
+
+            def group_rows(df_crop, tol=6):
+                df_crop = df_crop.sort_values(["top", "left"])
+                rows = {}
+                for _, w in df_crop.iterrows():
+                    key = int(round(w.top / tol) * tol)
+                    rows.setdefault(key, []).append(w)
+                return rows
+
+            def split_cols(row_words, cuts):
+                cols = [""] * (len(cuts) - 1)
+                for w in row_words:
+                    cx = w.left + w.width // 2
+                    for i in range(len(cuts) - 1):
+                        if cuts[i] <= cx < cuts[i + 1]:
+                            cols[i] += " " + w.text
+                            break
+                return [c.strip() for c in cols]
+
+            # ---------- regex leves ----------
+            re_cab = re.compile(
+                r"nome\s*do\s*funcion[áa]rio\s*:?\s*(.*?)\s*n[úu]mero\s*de\s*matr[íi]cula\s*:?\s*(\d+)",
+                flags=re.I | re.S,
+            )
+            re_cpf = re.compile(r"cpf\s*do\s*funcion[áa]rio\s*:?\s*(\d+)", flags=re.I)
+            re_adm = re.compile(
+                r"data\s*de\s*admiss[ãa]o\s*do\s*funcion[áa]rio\s*:?\s*(\d{2}[/\-.]\d{2}[/\-.]\d{4})",
+                flags=re.I,
+            )
+
+            COLS = [
+                "pagina", "nome", "cpf", "matricula", "data_admissao",
+                "dia", "dia_semana", "ent_1", "sai_1", "ent_2", "sai_2",
+                "ent_3", "sai_3", "situacao", "extras"
+            ]
+
+            detalhes = []
+            bar = st.progress(0)
+
+            for pg in range(1, num_pages + 1):
+                imgs = convert_from_path(
+                    tmp_path,
+                    dpi=200,
+                    first_page=pg,
+                    last_page=pg,
+                    grayscale=True,
+                    thread_count=1,
+                    use_pdftocairo=True,
+                )
+                img = imgs[0]
+                df_words = ocr_page(img)
+
+                txt_full = " ".join(df_words.text.astype(str).tolist())
+                nome = mat = cpf = adm = ""
+                m = re_cab.search(txt_full)
+                if m:
+                    nome = m.group(1).replace("\n", " ").strip()
+                    mat = m.group(2).strip()
+                m = re_cpf.search(txt_full)
+                if m:
+                    cpf = m.group(1).strip()
+                m = re_adm.search(txt_full)
+                if m:
+                    adm = m.group(1).strip()
+
+                h, w = img.size[1], img.size[0]
+                y0 = int(h * 0.32)
+                y1 = int(h * 0.90)
+                x0 = int(w * 0.05)
+                x1 = int(w * 0.95)
+                cuts = [int(w * p) for p in [0.05, 0.18, 0.30, 0.42, 0.54, 0.64, 0.74, 0.84, 0.92, 1.0]]
+
+                df_crop = slice_table(df_words, y0, y1, x0, x1)
+                rows = group_rows(df_crop, tol=8)
+
+                for y in sorted(rows):
+                    cols = split_cols(rows[y], cuts)
+                    while len(cols) < 10:
+                        cols.append("")
+
+                    dia_str = cols[0]
+                    dia_sem = cols[1].upper()
+                    horas = [h for h in cols[2:8] if h]
+                    ent1, sai1, ent2, sai2, ent3, sai3 = (horas + [""] * 6)[:6]
+                    situacao = cols[8] if cols[8] else "Dia normal"
+                    extras = cols[9] if cols[9] else "00:00"
+
+                    detalhes.append({
+                        "pagina": pg,
+                        "nome": nome,
+                        "cpf": cpf,
+                        "matricula": mat,
+                        "data_admissao": adm,
+                        "dia": dia_str,
+                        "dia_semana": dia_sem,
+                        "ent_1": ent1,
+                        "sai_1": sai1,
+                        "ent_2": ent2,
+                        "sai_2": sai2,
+                        "ent_3": ent3,
+                        "sai_3": sai3,
+                        "situacao": situacao,
+                        "extras": extras,
+                    })
+
+                bar.progress(pg / num_pages)
+
+            os.unlink(tmp_path)
+
+            df_det = pd.DataFrame(detalhes, columns=COLS)
+            if not df_det.empty:
+                resumo = (
+                    df_det.groupby(["nome", "cpf", "matricula", "data_admissao"], dropna=False)
+                    .agg(
+                        dias_trabalhados=("situacao", lambda x: (x == "Dia normal").sum()),
+                        dias_nao_trabalhados=("situacao", lambda x: (x != "Dia normal").sum()),
+                        atestados=("situacao", lambda x: (x == "Atestado").sum()),
+                        faltas=("situacao", lambda x: (x == "Falta").sum()),
+                        folgas=("situacao", lambda x: (x == "Folga").sum()),
+                        abonados=("situacao", lambda x: (x == "Abonado").sum()),
+                        horas_extras=("extras", lambda x: pd.to_timedelta(x.add(":00")).sum()),
+                    )
+                    .reset_index()
+                )
+                resumo["horas_extras"] = resumo["horas_extras"].dt.components.apply(
+                    lambda c: f"{c.hours:02d}:{c.minutes:02d}", axis=1
+                )
+
+                buf1 = BytesIO()
+                df_det.to_excel(buf1, index=False)
+                buf1.seek(0)
+                st.download_button("⬇️ detalhe_funcionario.xlsx", buf1, "detalhe_funcionario.xlsx")
+
+                buf2 = BytesIO()
+                resumo.to_excel(buf2, index=False)
+                buf2.seek(0)
+                st.download_button("⬇️ resumo_funcionario.xlsx", buf2, "resumo_funcionario.xlsx")
+
+                st.success("Downloads prontos – nada mudou no restante do app!")
+            else:
+                st.warning("Nenhum dia/horário foi capturado via OCR.")
 
     with tab3:
         st.header("🧱 D0 - Em manutenção")
