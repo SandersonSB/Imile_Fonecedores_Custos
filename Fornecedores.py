@@ -495,11 +495,10 @@ def main():
             processar_pdf_blitz(uploaded_file)
 
     with tab2:
-        with tab2:
-    st.header("📄 Extração de Texto e Tabelas - Polly")
-    uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
+        st.header("📄 Extração de Texto e Tabelas - Polly")
+        uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
 
-    if uploaded_polly:
+        if uploaded_polly:
         # ---------- VALIDAÇÃO DO PDF ----------
         from PyPDF2 import PdfReader
         from pdf2image import convert_from_bytes
