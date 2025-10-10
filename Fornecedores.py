@@ -439,9 +439,13 @@ def processar_pdf_blitz(uploaded_file):
         nome_col = f"Qtd - {sit}"
         df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-    # ==========================================================
+       # ==========================================================
     # BOTÕES DE DOWNLOAD
     # ==========================================================
+
+    # Remove colunas duplicadas
+    df_detalhe = df_detalhe.loc[:, ~df_detalhe.columns.duplicated()]
+
     output_consolidado = BytesIO()
     df_consolidado = df.drop(columns=TEMAS_POSSIVEIS)
     df_consolidado.to_excel(output_consolidado, index=False)
