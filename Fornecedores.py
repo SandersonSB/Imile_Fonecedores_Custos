@@ -296,20 +296,25 @@ def main():
         uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"], key="uploaded_blitz")
         if uploaded_file:
             processar_pdf_blitz(uploaded_file)
-
+# ------------------------------------------------------------------
+# ABA 2  –  Extração de Texto e Tabelas + OCR econômico (Polly)
+# ------------------------------------------------------------------
     with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
-        uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
-
+        uploaded_polly = st.file_uploader(
+            "Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly"
+        )
+    
         if uploaded_polly:
-            import pdfplumber, PyPDF2, shutil, pytesseract, tempfile, os, re
+            import pdfplumber, PyPDF2, shutil, pytesseract, tempfile, os, re, io
             from pdf2image import convert_from_path
             from io import BytesIO
-
+            import pandas as pd
+    
             def erro(msg):
                 st.error(msg)
                 st.stop()
-
+    
             # ---------- valida ----------
             try:
                 uploaded_polly.seek(0)
@@ -317,11 +322,11 @@ def main():
                 num_pages = len(reader.pages)
             except Exception:
                 erro("PDF inválido ou corrompido.")
-
+    
             # ---------- tem texto? ----------
             with pdfplumber.open(uploaded_polly) as pdf_temp:
                 tem_texto = any(p.extract_text() and p.extract_text().strip() for p in pdf_temp.pages)
-
+    
             if tem_texto:
                 st.success(f"Arquivo {uploaded_polly.name} carregado com texto selecionável!")
                 textos, tabelas = [], []
@@ -333,11 +338,11 @@ def main():
                         tbl = p.extract_table()
                         if tbl:
                             tabelas.append((i+1, pd.DataFrame(tbl[1:], columns=tbl[0])))
-
+    
                 st.subheader("📜 Texto extraído")
                 for bloco in textos:
                     st.markdown(bloco)
-
+    
                 st.subheader("📊 Tabelas detectadas")
                 if tabelas:
                     for i, df in tabelas:
@@ -345,37 +350,51 @@ def main():
                         st.dataframe(df)
                 else:
                     st.info("Nenhuma tabela detectada.")
-
+    
                 txt = "\n\n".join(textos)
                 buf = BytesIO()
                 buf.write(txt.encode("utf-8"))
                 buf.seek(0)
-                st.download_button("⬇️ Texto completo (D0)", buf, "texto_extraido_D0.txt", "text/plain")
-
+                st.download_button(
+                    "⬇️ Texto completo (D0)", buf, "texto_extraido_D0.txt", "text/plain"
+                )
+    
             else:
                 if shutil.which("tesseract") is None:
                     erro("Tesseract não está no PATH do servidor.")
-
+    
                 st.info("🔍 PDF escaneado – OCR stream (todas as páginas, memória constante).")
                 if st.button("Rodar OCR completo"):
-                    temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-                    temp_pdf.write(uploaded_polly.getbuffer())
-                    temp_pdf.close()
-
-                    # ---------- regex ----------
-                    re_cab = re.compile(r"NOME DO FUNCIONARIO:\s*(.+?)\s*NUMERO DE MATRICULA:\s*(\d+)")
-                    re_cpf = re.compile(r"CPF DO FUNCIONARIO:\s*(\d+)")
-                    re_adm = re.compile(r"DATA DE ADMISSAO DO FUNCIONARIO:\s*(\d{2}/\d{2}/\d{4})")
-                    re_dia = re.compile(r"(\d{2}/\d{2}/\d{4})\s*-\s*(SEG|TER|QUA|QUI|SEX|SAB|DOM)\s+(.+)")
-                    re_horas = re.compile(r"(\d{2}:\d{2})")
-
-                    detalhes, resumo = [], []
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                        tmp.write(uploaded_polly.getbuffer())
+                        tmp_path = tmp.name
+    
+                    # ---------- regex flexíveis ----------
+                    re_cab = re.compile(
+                        r"nome\s*do\s*funcion[áa]rio\s*:?\s*(.*?)\s*n[úu]mero\s*de\s*matr[íi]cula\s*:?\s*(\d+)",
+                        flags=re.I | re.S,
+                    )
+                    re_cpf = re.compile(r"cpf\s*do\s*funcion[áa]rio\s*:?\s*(\d+)", flags=re.I)
+                    re_adm = re.compile(
+                        r"data\s*de\s*admiss[ãa]o\s*do\s*funcion[áa]rio\s*:?\s*(\d{2}[/\-.]\d{2}[/\-.]\d{4})",
+                        flags=re.I,
+                    )
+    
+                    re_dia = re.compile(
+                        r"(\d{2}[/\-.]\d{2}[/\-.]\d{4})\s*-\s*(seg|ter|qua|qui|sex|s[áa]b|dom)[^\n\r]*\n?(.*?)(?=\d{2}[/\-.]\d{2}[/\-.]\d{4}|$)",
+                        flags=re.I | re.S,
+                    )
+                    re_horas = re.compile(r"(?:^|\s)(\d{2}[:\.;]\d{2})(?:\s|$)")
+                    situacoes = {"folga": "Folga", "falta": "Falta", "atestado": "Atestado", "abonado": "Abonado"}
+                    re_extras = re.compile(r"extras?\s*(?:50|100)?\s*[:;]?\s*(\d{2}[:\.;]\d{2})", flags=re.I)
+    
+                    detalhes = []
                     bar = st.progress(0)
-
+    
                     for pg in range(1, num_pages + 1):
                         imgs = convert_from_path(
-                            temp_pdf.name,
-                            dpi=120,
+                            tmp_path,
+                            dpi=150,
                             first_page=pg,
                             last_page=pg,
                             grayscale=True,
@@ -383,35 +402,43 @@ def main():
                             use_pdftocairo=True,
                         )
                         txt = pytesseract.image_to_string(imgs[0], lang="por")
-
+    
                         # ---------- cabeçalho ----------
-                        nome = re_cab.search(txt)
-                        mat = nome.group(2) if nome else ""
-                        nome = nome.group(1).strip() if nome else ""
-                        cpf = re_cpf.search(txt)
-                        cpf = cpf.group(1) if cpf else ""
-                        adm = re_adm.search(txt)
-                        adm = adm.group(1) if adm else ""
-
+                        nome = mat = cpf = adm = ""
+                        m = re_cab.search(txt)
+                        if m:
+                            nome = m.group(1).replace("\n", " ").strip()
+                            mat = m.group(2).strip()
+                        m = re_cpf.search(txt)
+                        if m:
+                            cpf = m.group(1).strip()
+                        m = re_adm.search(txt)
+                        if m:
+                            adm = m.group(1).strip()
+    
                         # ---------- dias ----------
                         for m in re_dia.finditer(txt):
                             dia_str, dia_sem, resto = m.groups()
-                            horas = re_horas.findall(resto)
-                            ent1, sai1, ent2, sai2, ent3, sai3 = (horas + [None] * 6)[:6]
-
+                            dia_sem = dia_sem.strip().upper()
+                            resto = resto.replace("\n", " ")
+    
+                            # horários
+                            horas = [h.replace(";", ":").replace(".", ":") for h in re_horas.findall(resto)]
+                            ent1, sai1, ent2, sai2, ent3, sai3 = (horas + [""] * 6)[:6]
+    
+                            # situação
                             situacao = "Dia normal"
-                            if "Folga" in resto:
-                                situacao = "Folga"
-                            elif "Falta" in resto:
-                                situacao = "Falta"
-                            elif "Atestado" in resto:
-                                situacao = "Atestado"
-                            elif "Abonado" in resto:
-                                situacao = "Abonado"
-
-                            extras = re.search(r"EXTRAS\s+(\d{2}:\d{2})", resto)
-                            extras = extras.group(1) if extras else "00:00"
-
+                            for key, val in situacoes.items():
+                                if key in resto.lower():
+                                    situacao = val
+                                    break
+    
+                            # extras
+                            extras = "00:00"
+                            m_ex = re_extras.search(resto)
+                            if m_ex:
+                                extras = m_ex.group(1).replace(";", ":").replace(".", ":")
+    
                             detalhes.append(
                                 {
                                     "pagina": pg,
@@ -431,16 +458,16 @@ def main():
                                     "extras": extras,
                                 }
                             )
-
+    
                         bar.progress(pg / num_pages)
-
-                    os.unlink(temp_pdf.name)
-
+    
+                    os.unlink(tmp_path)
+    
                     # ---------- resumo ----------
                     df_det = pd.DataFrame(detalhes)
                     if not df_det.empty:
                         resumo = (
-                            df_det.groupby(["nome", "cpf", "matricula", "data_admissao"])
+                            df_det.groupby(["nome", "cpf", "matricula", "data_admissao"], dropna=False)
                             .agg(
                                 dias_trabalhados=("situacao", lambda x: (x == "Dia normal").sum()),
                                 dias_nao_trabalhados=("situacao", lambda x: (x != "Dia normal").sum()),
@@ -456,21 +483,20 @@ def main():
                         resumo["horas_extras"] = resumo["horas_extras"].dt.components.apply(
                             lambda c: f"{c.hours:02d}:{c.minutes:02d}", axis=1
                         )
-
+    
                         buf1 = BytesIO()
                         df_det.to_excel(buf1, index=False)
                         buf1.seek(0)
                         st.download_button("⬇️ detalhe_funcionario.xlsx", buf1, "detalhe_funcionario.xlsx")
-
+    
                         buf2 = BytesIO()
                         resumo.to_excel(buf2, index=False)
                         buf2.seek(0)
                         st.download_button("⬇️ resumo_funcionario.xlsx", buf2, "resumo_funcionario.xlsx")
-
+    
                         st.success("Downloads prontos – nada mudou no restante do app!")
                     else:
                         st.warning("Nenhum dia/horário foi capturado via OCR.")
-
     with tab3:
         st.header("🧱 D0 - Em manutenção")
         st.info("Esta aba está em manutenção e será liberada em breve.")
