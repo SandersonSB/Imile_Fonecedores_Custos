@@ -297,7 +297,7 @@ def main():
         if uploaded_file:
             processar_pdf_blitz(uploaded_file)
 # ------------------------------------------------------------------
-# ABA 2  –  Extração de Texto e Tabelas + OCR econômico (Polly)
+# ABA 2  –  Extração de Texto e Tabelas + OCR por coordenadas (Polly)
 # ------------------------------------------------------------------
     with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
@@ -363,13 +363,46 @@ def main():
                 if shutil.which("tesseract") is None:
                     erro("Tesseract não está no PATH do servidor.")
     
-                st.info("🔍 PDF escaneado – OCR stream (todas as páginas, memória constante).")
+                st.info("🔍 PDF escaneado – OCR por coordenadas (todas as páginas).")
                 if st.button("Rodar OCR completo"):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                         tmp.write(uploaded_polly.getbuffer())
                         tmp_path = tmp.name
     
-                    # ---------- regex flexíveis ----------
+                    # ---------- funções auxiliares ----------
+                    def ocr_page(image):
+                        """Retorna DataFrame com cada palavra e sua bbox"""
+                        data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DATAFRAME, lang="por")
+                        return data[data.conf > 0].copy()
+    
+                    def slice_table(df_words, y0, y1, x0, x1):
+                        """Recorta apenas palavras dentro da bbox da tabela"""
+                        return df_words[
+                            (df_words.top >= y0) & (df_words.top + df_words.height <= y1) &
+                            (df_words.left >= x0) & (df_words.left + df_words.width <= x1)
+                        ]
+    
+                    def group_rows(df_crop, tol=6):
+                        """Agrupa palavras por linha (y) retornando dict {y: [words]}"""
+                        df_crop = df_crop.sort_values(["top", "left"])
+                        rows = {}
+                        for _, w in df_crop.iterrows():
+                            key = int(round(w.top / tol) * tol)
+                            rows.setdefault(key, []).append(w)
+                        return rows
+    
+                    def split_cols(row_words, cuts):
+                        """Quebra lista de palavras da linha em colunas via cortes x"""
+                        cols = [""] * (len(cuts) - 1)
+                        for w in row_words:
+                            cx = w.left + w.width // 2
+                            for i in range(len(cuts) - 1):
+                                if cuts[i] <= cx < cuts[i + 1]:
+                                    cols[i] += " " + w.text
+                                    break
+                        return [c.strip() for c in cols]
+    
+                    # ---------- regex leves só para capturar cabeçalho ----------
                     re_cab = re.compile(
                         r"nome\s*do\s*funcion[áa]rio\s*:?\s*(.*?)\s*n[úu]mero\s*de\s*matr[íi]cula\s*:?\s*(\d+)",
                         flags=re.I | re.S,
@@ -380,13 +413,12 @@ def main():
                         flags=re.I,
                     )
     
-                    re_dia = re.compile(
-                        r"(\d{2}[/\-.]\d{2}[/\-.]\d{4})\s*-\s*(seg|ter|qua|qui|sex|s[áa]b|dom)[^\n\r]*\n?(.*?)(?=\d{2}[/\-.]\d{2}[/\-.]\d{4}|$)",
-                        flags=re.I | re.S,
-                    )
-                    re_horas = re.compile(r"(?:^|\s)(\d{2}[:\.;]\d{2})(?:\s|$)")
-                    situacoes = {"folga": "Folga", "falta": "Falta", "atestado": "Atestado", "abonado": "Abonado"}
-                    re_extras = re.compile(r"extras?\s*(?:50|100)?\s*[:;]?\s*(\d{2}[:\.;]\d{2})", flags=re.I)
+                    # ---------- colunas que sempre existirão ----------
+                    COLS = [
+                        "pagina", "nome", "cpf", "matricula", "data_admissao",
+                        "dia", "dia_semana", "ent_1", "sai_1", "ent_2", "sai_2",
+                        "ent_3", "sai_3", "situacao", "extras"
+                    ]
     
                     detalhes = []
                     bar = st.progress(0)
@@ -394,50 +426,55 @@ def main():
                     for pg in range(1, num_pages + 1):
                         imgs = convert_from_path(
                             tmp_path,
-                            dpi=150,
+                            dpi=200,
                             first_page=pg,
                             last_page=pg,
                             grayscale=True,
                             thread_count=1,
                             use_pdftocairo=True,
                         )
-                        txt = pytesseract.image_to_string(imgs[0], lang="por")
+                        img = imgs[0]
+                        df_words = ocr_page(img)
     
                         # ---------- cabeçalho ----------
+                        txt_full = " ".join(df_words.text.astype(str).tolist())
                         nome = mat = cpf = adm = ""
-                        m = re_cab.search(txt)
+                        m = re_cab.search(txt_full)
                         if m:
                             nome = m.group(1).replace("\n", " ").strip()
                             mat = m.group(2).strip()
-                        m = re_cpf.search(txt)
+                        m = re_cpf.search(txt_full)
                         if m:
                             cpf = m.group(1).strip()
-                        m = re_adm.search(txt)
+                        m = re_adm.search(txt_full)
                         if m:
                             adm = m.group(1).strip()
     
-                        # ---------- dias ----------
-                        for m in re_dia.finditer(txt):
-                            dia_str, dia_sem, resto = m.groups()
-                            dia_sem = dia_sem.strip().upper()
-                            resto = resto.replace("\n", " ")
+                        # ---------- detectar área da tabela (hard-coded para esse modelo) ----------
+                        # Ajuste esses números olhando uma página sua; unidades são pixels
+                        h, w = img.size[1], img.size[0]
+                        y0 = int(h * 0.32)  # começo da tabela
+                        y1 = int(h * 0.90)  # fim da tabela
+                        x0 = int(w * 0.05)
+                        x1 = int(w * 0.95)
     
-                            # horários
-                            horas = [h.replace(";", ":").replace(".", ":") for h in re_horas.findall(resto)]
+                        # ---------- cortes verticais fixos (%) ----------
+                        cuts = [int(w * p) for p in [0.05, 0.18, 0.30, 0.42, 0.54, 0.64, 0.74, 0.84, 0.92, 1.0]]
+    
+                        df_crop = slice_table(df_words, y0, y1, x0, x1)
+                        rows = group_rows(df_crop, tol=8)
+    
+                        for y in sorted(rows):
+                            cols = split_cols(rows[y], cuts)
+                            if len(cols) < 6:
+                                continue
+                            # cols[0] = data, cols[1] = dia semana, cols[2..7] = batidas, cols[8] = sit, cols[9] = extras
+                            dia_str = cols[0]
+                            dia_sem = cols[1].upper()
+                            horas = [h for h in cols[2:8] if h]
                             ent1, sai1, ent2, sai2, ent3, sai3 = (horas + [""] * 6)[:6]
-    
-                            # situação
-                            situacao = "Dia normal"
-                            for key, val in situacoes.items():
-                                if key in resto.lower():
-                                    situacao = val
-                                    break
-    
-                            # extras
-                            extras = "00:00"
-                            m_ex = re_extras.search(resto)
-                            if m_ex:
-                                extras = m_ex.group(1).replace(";", ":").replace(".", ":")
+                            situacao = cols[8] if cols[8] else "Dia normal"
+                            extras = cols[9] if cols[9] else "00:00"
     
                             detalhes.append(
                                 {
@@ -463,8 +500,8 @@ def main():
     
                     os.unlink(tmp_path)
     
-                    # ---------- resumo ----------
-                    df_det = pd.DataFrame(detalhes)
+                    # ---------- garantir todas as colunas ----------
+                    df_det = pd.DataFrame(detalhes, columns=COLS)
                     if not df_det.empty:
                         resumo = (
                             df_det.groupby(["nome", "cpf", "matricula", "data_admissao"], dropna=False)
@@ -479,7 +516,6 @@ def main():
                             )
                             .reset_index()
                         )
-                        # formata timedelta → hh:mm
                         resumo["horas_extras"] = resumo["horas_extras"].dt.components.apply(
                             lambda c: f"{c.hours:02d}:{c.minutes:02d}", axis=1
                         )
