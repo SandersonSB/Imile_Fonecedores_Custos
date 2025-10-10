@@ -506,17 +506,12 @@ def main():
                 alerta_pdf_imagem("PDF escaneado detectado. Será realizada leitura via OCR (Tesseract).")
                 st.info("🔍 Iniciando OCR... isso pode levar alguns segundos.")
 
-                # --- OCR + DataFrame (código já validado) ---
+                # --- OCR + DataFrame (sem salvar arquivo em disco) ---
                 import pytesseract
                 pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
-                from pdf2image import convert_from_path
+                from pdf2image import convert_from_bytes
                 from io import BytesIO
                 import re
-                import os
-
-                # Salva o arquivo em disco temporário para pdf2image
-                with open("temp_polly.pdf", "wb") as f:
-                    f.write(uploaded_polly.read())
 
                 # Regexes flexíveis
                 re_nome        = re.compile(r"NOME DO FUNCIONÁRIO[:\s]*(.+?)(?:\n|\r)", re.IGNORECASE | re.UNICODE)
@@ -525,7 +520,8 @@ def main():
                 re_admissao    = re.compile(r"DATA DE ADMISS[ÃA]O DO FUNCIONÁRIO[:\s]*(\d{2}/\d{2}/\d{4})", re.IGNORECASE | re.UNICODE)
                 re_dia_linha   = re.compile(r"(\d{2}/\d{2}/\d{4})\s*-\s*(SEG|TER|QUA|QUI|SEX|SAB|DOM)\s*(.+)", re.IGNORECASE | re.UNICODE)
 
-                images = convert_from_path("temp_polly.pdf", dpi=300)
+                # Lê o PDF diretamente da memória
+                images = convert_from_bytes(uploaded_polly.read(), dpi=300)
                 rows = []
 
                 for idx, img in enumerate(images):
@@ -614,10 +610,6 @@ def main():
                 st.download_button("⬇️ Baixar relatório diário (OCR)", output_diario, "relatorio_diario_polly.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 st.download_button("⬇️ Baixar resumo por funcionário (OCR)", output_resumo, "resumo_por_funcionario_polly.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-                # Limpa arquivo temporário
-                if os.path.exists("temp_polly.pdf"):
-                    os.remove("temp_polly.pdf")
-
             else:
                 # PDF com texto selecionável - comportamento original
                 st.success(f"Arquivo {uploaded_polly.name} carregado com sucesso!")
@@ -660,7 +652,6 @@ def main():
                     file_name="texto_extraido_D0.txt",
                     mime="text/plain"
                 )
-
     with tab3:
         st.header("🧱 D0 - Em manutenção")
         st.info("Esta aba está em manutenção e será liberada em breve.")
