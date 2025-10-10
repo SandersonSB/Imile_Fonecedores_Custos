@@ -434,12 +434,46 @@ def processar_pdf_blitz(uploaded_file):
 
     df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
 
+    # ==========================================================
+    # REGRAS FINAIS DE SITUAÇÃO E CONTAGEM
+    # ==========================================================
+
+    # 1 - Se Situação for "Dia incompleto" e previsto ≠ "-", copia previsto para situação
+    def ajustar_incompleto_por_previsto(row):
+        situacao = limpa_valor(row["Situação"])
+        previsto = limpa_valor(row["previsto"])
+        if situacao == "DIA INCOMPLETO" and previsto and previsto != "-":
+            return previsto.upper()
+        return situacao
+
+    df_detalhe["Situação"] = df_detalhe.apply(ajustar_incompleto_por_previsto, axis=1)
+
+    # 2 - Se Situação começar com número, substitui pelo previsto
+    def ajustar_numero_por_previsto(row):
+        situacao = limpa_valor(row["Situação"])
+        previsto = limpa_valor(row["previsto"])
+        if situacao and situacao[0].isdigit() and previsto:
+            return previsto.upper()
+        return situacao
+
+    df_detalhe["Situação"] = df_detalhe.apply(ajustar_numero_por_previsto, axis=1)
+
+    # 3 - Se Situação termina com (I) ou (P), vira "Dia normal de trabalho"
+    def ajustar_i_ou_p(row):
+        situacao = limpa_valor(row["Situação"])
+        if situacao.endswith("(I)") or situacao.endswith("(P)"):
+            return "DIA NORMAL DE TRABALHO"
+        return situacao
+
+    df_detalhe["Situação"] = df_detalhe.apply(ajustar_i_ou_p, axis=1)
+
+    # Recalcula contagens após ajustes
     situacoes_unicas = df_detalhe["Situação"].unique()
     for sit in situacoes_unicas:
         nome_col = f"Qtd - {sit}"
         df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-       # ==========================================================
+    # ==========================================================
     # BOTÕES DE DOWNLOAD
     # ==========================================================
 
