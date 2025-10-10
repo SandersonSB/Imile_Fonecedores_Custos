@@ -297,7 +297,7 @@ def main():
         if uploaded_file:
             processar_pdf_blitz(uploaded_file)
 
-       with tab2:
+    with tab2:
         st.header("📄 Extração de Texto e Tabelas - Polly")
         uploaded_polly = st.file_uploader("Selecione o arquivo PDF (Polly)", type=["pdf"], key="uploaded_polly")
 
