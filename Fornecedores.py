@@ -280,7 +280,6 @@ def processar_pdf_blitz(uploaded_file):
     if not tem_texto:
         alerta_pdf_imagem("Arquivo rejeitado: PDF escaneado (imagem) não é suportado.")
         st.warning("⚠️ Por favor, anexe um PDF com texto selecionável.")
-        # Limpa o arquivo e reinicia
         st.session_state["uploaded_blitz"] = None
         st.rerun()
         return
@@ -357,40 +356,92 @@ def processar_pdf_blitz(uploaded_file):
     df = pd.DataFrame(dados_funcionarios).fillna(0)
     df_detalhe = pd.DataFrame(detalhes)
 
-    # Validação de horas
-    df_detalhe["Validação da hora trabalhada"] = df_detalhe.apply(
-        lambda row: "Carga Horaria Completa - Fez Hora Extra" if (
-            hora_para_minutos(limpa_valor(row.get("total_trabalhado"))) >
-            hora_para_minutos(limpa_valor(row.get("horas_previstas")))
-        ) else "Carga Horaria Completa" if (
-            hora_para_minutos(limpa_valor(row.get("total_trabalhado"))) ==
-            hora_para_minutos(limpa_valor(row.get("horas_previstas")))
-        ) else "Carga Horaria Incompleta", axis=1
-    )
+    # =========================
+    # VALIDAÇÕES E REGRAS DO DF_DETALHE
+    # =========================
+    valores_validacao = []
+    for _, row in df_detalhe.iterrows():
+        total_minutos = (
+            hora_para_minutos(limpa_valor(row.get("sai_1"))) - hora_para_minutos(limpa_valor(row.get("ent_1"))) +
+            hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
+        )
+        previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
+        if total_minutos > previsto_minutos:
+            status = "Carga Horaria Completa - Fez Hora Extra"
+        elif total_minutos == previsto_minutos:
+            status = "Carga Horaria Completa"
+        else:
+            status = "Carga Horaria Incompleta"
+        valores_validacao.append(status)
+    df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
-    # Situação do dia
-    def validar_dia(row):
+    for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+        df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
+
+    def determinar_situacao(row):
         valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]),
-                  limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
+                   limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
         textos = [v for v in valores if v and not eh_horario(v)]
         if textos:
             return textos[0].upper()
-        horarios_validos = [eh_horario(v) for v in valores]
+        horarios_validos = [row.get("ent_1_valido", False), row.get("sai_1_valido", False),
+                            row.get("ent_2_valido", False), row.get("sai_2_valido", False)]
         if all(horarios_validos):
             return "Dia normal de trabalho"
-        elif any(horarios_validos):
+        if any(horarios_validos):
             return "Presença parcial"
-        else:
-            return "Dia incompleto"
+        return "Dia incompleto"
 
-    df_detalhe["Situação"] = df_detalhe.apply(validar_dia, axis=1)
+    df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
+    df_detalhe.drop(columns=["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"], inplace=True, errors='ignore')
 
-    # Contagem por situação
-    for sit in df_detalhe["Situação"].unique():
+    df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
+    def reavaliar_situacao(row):
+        if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
+            return "Dia normal de trabalho"
+        entradas_saidas = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")),
+                           limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
+        if all(v == "" for v in entradas_saidas):
+            return "Dia não previsto"
+        textos = [v for v in entradas_saidas if v and not eh_horario(v)]
+        if textos:
+            return textos[0].upper()
+        return "Presença parcial"
+
+    df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
+    df_detalhe.loc[df_detalhe["ent_1"].str.contains("-", na=False), "Situação"] = "Dia não previsto"
+
+    def pegar_correcao(row):
+        for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+            val = limpa_valor(row.get(col))
+            if val:
+                return val
+        return ""
+
+    df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
+    df_detalhe.loc[df_detalhe["Situação"].apply(eh_horario), "Situação"] = df_detalhe["correção"]
+
+    def regra_numero_inicio(row):
+        situacao = limpa_valor(row["Situação"])
+        if situacao and situacao[0].isdigit():
+            total_trab = limpa_valor(row.get("total_trabalhado"))
+            if eh_horario(total_trab) and total_trab != "00:00":
+                return "Dia normal de trabalho"
+            else:
+                previsto = limpa_valor(row.get("previsto")).upper()
+                return previsto if previsto else "Dia não previsto"
+        return situacao
+
+    df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
+
+    situacoes_unicas = df_detalhe["Situação"].unique()
+    for sit in situacoes_unicas:
         nome_col = f"Qtd - {sit}"
         df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-    # Preparar Excel
+    # ==========================================================
+    # BOTÕES DE DOWNLOAD
+    # ==========================================================
     output_consolidado = BytesIO()
     df_consolidado = df.drop(columns=TEMAS_POSSIVEIS)
     df_consolidado.to_excel(output_consolidado, index=False)
