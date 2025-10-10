@@ -272,6 +272,56 @@ def processar_texto_blitz(linhas, funcionario):
             funcionario[tema_encontrado] += 1
 
 # ==========================================================
+# FUNÇÃO BLITZ COMPLETA (INCLUÍDA AQUI)
+# ==========================================================
+def processar_pdf_blitz(uploaded_file):
+    with pdfplumber.open(uploaded_file) as pdf:
+        funcionarios = []
+        for pagina in pdf.pages:
+            texto = pagina.extract_text()
+            if not texto:
+                continue
+
+            linhas = texto.splitlines()
+            funcionario = {
+                "nome": "",
+                "cpf": "",
+                "matricula": "",
+                "cargo": "",
+                "centro_custo": "",
+                "total_trabalhado": "00:00",
+                "total_noturno": "00:00",
+                "horas_previstas": "00:00",
+                "faltas": 0,
+                "horas_atraso": "00:00",
+                "extra_50": "00:00",
+                "desconta_dsr": 0,
+            }
+
+            # Inicializa temas
+            for tema in TEMAS_POSSIVEIS:
+                funcionario[tema] = 0
+
+            processar_texto_blitz(linhas, funcionario)
+            tabela = pagina.extract_table()
+            if tabela:
+                processar_tabela_blitz(tabela, funcionario)
+
+            funcionarios.append(funcionario)
+
+    st.success("✅ PDF processado com sucesso!")
+    df = pd.DataFrame(funcionarios)
+    st.dataframe(df)
+
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Baixar CSV",
+        data=csv,
+        file_name="apontamentos_blitz.csv",
+        mime="text/csv"
+    )
+
+# ==========================================================
 # INTERFACE PRINCIPAL
 # ==========================================================
 
@@ -296,6 +346,7 @@ def main():
         uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"], key="uploaded_blitz")
         if uploaded_file:
             processar_pdf_blitz(uploaded_file)
+
 # ------------------------------------------------------------------
 # ABA 2  –  Extração de Texto e Tabelas + OCR por coordenadas (Polly)
 # ------------------------------------------------------------------
