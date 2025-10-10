@@ -1,7 +1,7 @@
 streamlit
 pdfplumber
 pandas
-pytesseract
-pdf2image
+pdf2image==1.17.0
+pytesseract==0.3.13
 Pillow
 openpyxl
