@@ -371,19 +371,16 @@ def main():
     
                     # ---------- funções auxiliares ----------
                     def ocr_page(image):
-                        """Retorna DataFrame com cada palavra e sua bbox"""
                         data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DATAFRAME, lang="por")
                         return data[data.conf > 0].copy()
     
                     def slice_table(df_words, y0, y1, x0, x1):
-                        """Recorta apenas palavras dentro da bbox da tabela"""
                         return df_words[
                             (df_words.top >= y0) & (df_words.top + df_words.height <= y1) &
                             (df_words.left >= x0) & (df_words.left + df_words.width <= x1)
                         ]
     
                     def group_rows(df_crop, tol=6):
-                        """Agrupa palavras por linha (y) retornando dict {y: [words]}"""
                         df_crop = df_crop.sort_values(["top", "left"])
                         rows = {}
                         for _, w in df_crop.iterrows():
@@ -392,7 +389,6 @@ def main():
                         return rows
     
                     def split_cols(row_words, cuts):
-                        """Quebra lista de palavras da linha em colunas via cortes x"""
                         cols = [""] * (len(cuts) - 1)
                         for w in row_words:
                             cx = w.left + w.width // 2
@@ -413,7 +409,7 @@ def main():
                         flags=re.I,
                     )
     
-                    # ---------- colunas que sempre existirão ----------
+                    # ---------- colunas finais ----------
                     COLS = [
                         "pagina", "nome", "cpf", "matricula", "data_admissao",
                         "dia", "dia_semana", "ent_1", "sai_1", "ent_2", "sai_2",
@@ -450,15 +446,12 @@ def main():
                         if m:
                             adm = m.group(1).strip()
     
-                        # ---------- detectar área da tabela (hard-coded para esse modelo) ----------
-                        # Ajuste esses números olhando uma página sua; unidades são pixels
+                        # ---------- área da tabela (ajuste seus valores aqui) ----------
                         h, w = img.size[1], img.size[0]
-                        y0 = int(h * 0.32)  # começo da tabela
-                        y1 = int(h * 0.90)  # fim da tabela
+                        y0 = int(h * 0.32)  # começo
+                        y1 = int(h * 0.90)  # fim
                         x0 = int(w * 0.05)
                         x1 = int(w * 0.95)
-    
-                        # ---------- cortes verticais fixos (%) ----------
                         cuts = [int(w * p) for p in [0.05, 0.18, 0.30, 0.42, 0.54, 0.64, 0.74, 0.84, 0.92, 1.0]]
     
                         df_crop = slice_table(df_words, y0, y1, x0, x1)
@@ -466,9 +459,10 @@ def main():
     
                         for y in sorted(rows):
                             cols = split_cols(rows[y], cuts)
-                            if len(cols) < 6:
-                                continue
-                            # cols[0] = data, cols[1] = dia semana, cols[2..7] = batidas, cols[8] = sit, cols[9] = extras
+                            # ---------- garante 10 colunas ----------
+                            while len(cols) < 10:
+                                cols.append("")
+    
                             dia_str = cols[0]
                             dia_sem = cols[1].upper()
                             horas = [h for h in cols[2:8] if h]
@@ -500,7 +494,7 @@ def main():
     
                     os.unlink(tmp_path)
     
-                    # ---------- garantir todas as colunas ----------
+                    # ---------- monta DataFrames ----------
                     df_det = pd.DataFrame(detalhes, columns=COLS)
                     if not df_det.empty:
                         resumo = (
