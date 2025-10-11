@@ -88,7 +88,9 @@ def eh_horario(valor):
     h, m = int(h), int(m)
     return 0 <= h < 24 and 0 <= m < 60
 
-import streamlit as st
+# =========================
+# Configuração da Página
+# =========================
 
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
@@ -116,7 +118,6 @@ if not st.session_state.iniciado:
             margin: 10px auto 30px auto;
         }
 
-        /* Força o botão do Streamlit a centralizar */
         div.stButton {
             display: flex;
             justify-content: center;
@@ -148,11 +149,9 @@ if not st.session_state.iniciado:
     </div>
     """, unsafe_allow_html=True)
 
-    # Criar 3 colunas e colocar o botão no meio
-    col1, col2, col3 = st.columns([1,1,1])
-    col1, col2, col3 = st.columns([3,2,2])  
+    col1, col2, col3 = st.columns([3,2,2])
 
-    with col2:  
+    with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
 
@@ -163,110 +162,76 @@ else:
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
 
     # =========================
-# Funções auxiliares para Polly (Ponto) - CORRIGIDAS
-# =========================
-@st.cache_data
-def extract_employee_data_polly(pdf_path):
-    """
-    Extrai os dados de ponto de cada funcionário do PDF.
-    Função adaptada para o formato Polly com REGEX mais robustas.
-    """
-    try:
-        # Abre o PDF usando BytesIO se o caminho for bytes, ou diretamente
-        if isinstance(pdf_path, BytesIO):
-            doc = fitz.open(stream=pdf_path.read(), filetype="pdf")
-        else:
-            doc = fitz.open(pdf_path) 
-    except Exception as e:
-        print(f"Erro ao abrir o arquivo PDF: {e}")
-        return []
+    # Funções auxiliares para Polly (Ponto) - CORRIGIDAS
+    # =========================
+    @st.cache_data
+    def extract_employee_data_polly(pdf_path):
+        try:
+            if isinstance(pdf_path, BytesIO):
+                doc = fitz.open(stream=pdf_path.read(), filetype="pdf")
+            else:
+                doc = fitz.open(pdf_path)
+        except Exception as e:
+            print(f"Erro ao abrir o arquivo PDF: {e}")
+            return []
 
-    all_reports = []
+        all_reports = []
 
-    # Processa página por página
-    for page_num in range(doc.page_count):
-        page = doc.load_page(page_num)
-        text = page.get_text("text")
-        
-        if "Cartão de Ponto" not in text:
-            continue
-            
-        # --- 1. Extração de Dados de Cabeçalho (REGEX ROBUSTAS) ---
-        
-        # Aceita FUNCIONARIO ou FUNCIONÁRIO e captura até o próximo campo (CPF ou NÚMERO)
-        regex_nome = r"NOME DO FUNCION[AÁ]RIO: (.*?)(?:CPF|NÚMERO)"
-        regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)"
-        regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
-        
-        # Captura TOTAIS e busca os três valores numéricos/tempo no texto que se segue (Dias, Extra 50%, Extras Total)
-        regex_totais = r"TOTAIS.*?(\d+)\s+([\d:]{4,5})\s+([\d:]{4,5})"
-        
-        # Captura o bloco de Alterações/Justificativas
-        regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCION[AÁ]RIO:|\Z)" 
-        
-        
-        nome = re.search(regex_nome, text, re.DOTALL | re.IGNORECASE)
-        matricula = re.search(regex_matricula, text)
-        periodo_match = re.search(regex_periodo, text)
-        # re.DOTALL é crucial aqui para que o ponto ( . ) também inclua quebras de linha
-        totais_match = re.search(regex_totais, text, re.DOTALL) 
-        ausencias_match = re.search(regex_ausencias, text, re.DOTALL | re.IGNORECASE)
+        for page_num in range(doc.page_count):
+            page = doc.load_page(page_num)
+            text = page.get_text("text")
 
+            if "Cartão de Ponto" not in text:
+                continue
 
-        if not nome or not matricula or not totais_match:
-            continue
-        
-        
-        # Extração de TOTAIS (Grupos 1, 2 e 3)
-        dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
-        extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
-        extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
+            regex_nome = r"NOME DO FUNCION[AÁ]RIO: (.*?)(?:CPF|NÚMERO)"
+            regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)"
+            regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
+            regex_totais = r"TOTAIS.*?(\d+)\s+([\d:]{4,5})\s+([\d:]{4,5})"
+            regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCION[AÁ]RIO:|\Z)"
 
-        
-        # --- 2. Processamento das Justificativas e Ausências ---
-        
-        ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
-        
-        num_atestados = ausencias_texto.lower().count("atestado médico")
-        
-        # Contagem de Faltas (procura na tabela de ponto diário)
-        faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
-        num_faltas = len(faltas_text)
+            nome = re.search(regex_nome, text, re.DOTALL | re.IGNORECASE)
+            matricula = re.search(regex_matricula, text)
+            periodo_match = re.search(regex_periodo, text)
+            totais_match = re.search(regex_totais, text, re.DOTALL)
+            ausencias_match = re.search(regex_ausencias, text, re.DOTALL | re.IGNORECASE)
 
-        total_ausencias = num_faltas + num_atestados
-        
-        justificativas_limpas = ausencias_texto.replace('\n', ' | ')
-        justificativas_limpas = re.sub(r"• ", "", justificativas_limpas)
-        
-        
-        # --- 3. Criação do Dicionário de Relatório ---
-        
-        report = {
-            "Nome do Funcionário": nome.group(1).strip(),
-            "Matrícula": matricula.group(1).strip(),
-            "Período de Apuração": f"{periodo_match.group(1)} a {periodo_match.group(2)}" if periodo_match else 'N/A',
-            "Dias Trabalhados (Registrados)": dias_trabalhados,
-            "Horas Extras 50%": extra_50,
-            "Horas Extras Total": extras_total,
-            "Total de Faltas e Atestados": total_ausencias,
-            "Detalhe das Justificativas": justificativas_limpas,
-        }
-        
-        all_reports.append(report)
+            if not nome or not matricula or not totais_match:
+                continue
 
-    return all_reports
+            dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
+            extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
+            extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
 
-@st.cache_data
-def convert_df_to_excel_polly(df):
-    """
-    Converte o DataFrame para um arquivo Excel (.xlsx) em memória.
-    """
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Relatorio_Ponto_Polly')
-    processed_data = output.getvalue()
-    return processed_data
+            ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
+            num_atestados = ausencias_texto.lower().count("atestado médico")
+            faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
+            num_faltas = len(faltas_text)
+            total_ausencias = num_faltas + num_atestados
+            justificativas_limpas = ausencias_texto.replace('\n', ' | ')
+            justificativas_limpas = re.sub(r"• ", "", justificativas_limpas)
 
+            report = {
+                "Nome do Funcionário": nome.group(1).strip(),
+                "Matrícula": matricula.group(1).strip(),
+                "Período de Apuração": f"{periodo_match.group(1)} a {periodo_match.group(2)}" if periodo_match else 'N/A',
+                "Dias Trabalhados (Registrados)": dias_trabalhados,
+                "Horas Extras 50%": extra_50,
+                "Horas Extras Total": extras_total,
+                "Total de Faltas e Atestados": total_ausencias,
+                "Detalhe das Justificativas": justificativas_limpas,
+            }
+
+            all_reports.append(report)
+
+        return all_reports
+
+    @st.cache_data
+    def convert_df_to_excel_polly(df):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Relatorio_Ponto_Polly')
+        return output.getvalue()
 
     # -------------------------
     # Aba Blitz
@@ -433,7 +398,8 @@ def convert_df_to_excel_polly(df):
                 df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
 
             def determinar_situacao(row):
-                valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]), limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
+                valores = [limpa_valor(row["ent_1"]), limpa_valor(row["sai_1"]),
+                           limpa_valor(row["ent_2"]), limpa_valor(row["sai_2"])]
                 textos = [v for v in valores if v and not eh_horario(v)]
                 if textos:
                     return textos[0].upper()
@@ -510,70 +476,59 @@ def convert_df_to_excel_polly(df):
                 label="⬇️ Baixar detalhe_funcionarios.xlsx",
                 data=output_detalhe,
                 file_name="detalhe_funcionarios.xlsx",
-                mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-   # -------------------------
-# Aba Polly
-# -------------------------
+    # -------------------------
+    # Aba Polly
+    # -------------------------
     with tab2:
         st.header("🎙️ Processamento de Cartão de Ponto (Polly)")
         st.markdown("---")
-        
+
         uploaded_file_polly = st.file_uploader(
             "Anexe o arquivo de Cartão de Ponto (Formato PDF) da Polly",
             type=["pdf"],
-            key="polly_uploader", # Chave única para o widget
+            key="polly_uploader",
             help="Processa PDFs com até 120 páginas, extraindo dados consolidados de cada funcionário."
         )
-    
+
         if uploaded_file_polly is not None:
-            
             pdf_bytes = uploaded_file_polly.read()
-            
-            # 2. Executar a função de extração
+
             with st.spinner("Processando PDF e extraindo dados... Este processo pode levar tempo para arquivos grandes."):
-                # Passa os bytes do PDF diretamente para a função
                 data = extract_employee_data_polly(BytesIO(pdf_bytes))
-    
+
             if data:
-                # 3. Criação do DataFrame e Exibição do Relatório
                 df_report = pd.DataFrame(data)
-                
-                # Reordenar as colunas para melhor visualização
                 column_order = [
-                    "Nome do Funcionário", 
-                    "Matrícula", 
-                    "Período de Apuração", 
-                    "Dias Trabalhados (Registrados)", 
-                    "Horas Extras Total", 
-                    "Horas Extras 50%", 
-                    "Total de Faltas e Atestados", 
+                    "Nome do Funcionário",
+                    "Matrícula",
+                    "Período de Apuração",
+                    "Dias Trabalhados (Registrados)",
+                    "Horas Extras Total",
+                    "Horas Extras 50%",
+                    "Total de Faltas e Atestados",
                     "Detalhe das Justificativas"
                 ]
-                
                 df_final = df_report[column_order]
-    
+
                 st.success("✅ Extração de dados consolidada com sucesso!")
-                
-                # Exibição da tabela final 
                 st.markdown("### Relatório de Ponto Consolidado")
                 st.dataframe(df_final, use_container_width=True)
-    
-                # 4. Opção de Download em XLSX
+
                 excel_data = convert_df_to_excel_polly(df_final)
-    
+
                 st.download_button(
                     label="⬇️ Baixar Relatório Polly em XLSX",
                     data=excel_data,
                     file_name='relatorio_ponto_polly_consolidado.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 )
-                
             else:
                 st.warning("Nenhum Cartão de Ponto da Polly com o formato esperado foi encontrado no arquivo.")
                 st.info("Verifique se o PDF contém as frases 'NOME DO FUNCIONARIO' e 'TOTAIS' em um formato de texto detectável.")
-        
+
     # -------------------------
     # Aba D0
     # -------------------------
