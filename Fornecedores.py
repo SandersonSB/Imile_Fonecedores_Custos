@@ -162,104 +162,106 @@ else:
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
 
     # =========================
-    # Funções auxiliares para Polly (Ponto) - CORRIGIDAS
-    # =========================
-    @st.cache_data
-    def extract_employee_data_polly(pdf_path):
-        """
-        Extrai os dados de ponto de cada funcionário do PDF.
-        Função adaptada para o formato Polly com REGEX mais robustas.
-        """
-        try:
-            # Abre o PDF usando BytesIO se o caminho for bytes, ou diretamente
-            if isinstance(pdf_path, BytesIO):
-                doc = fitz.open(stream=pdf_path.read(), filetype="pdf")
-            else:
-                doc = fitz.open(pdf_path)
-        except Exception as e:
-            print(f"Erro ao abrir o arquivo PDF: {e}")
-            return []
+# Funções auxiliares para Polly (Ponto) - CORRIGIDAS
+# =========================
+@st.cache_data
+def extract_employee_data_polly(pdf_path):
+    """
+    Extrai os dados de ponto de cada funcionário do PDF.
+    Função adaptada para o formato Polly com REGEX mais robustas.
+    """
+    try:
+        # Abre o PDF usando BytesIO se o caminho for bytes, ou diretamente
+        if isinstance(pdf_path, BytesIO):
+            # Acessa o valor do BytesIO
+            pdf_path.seek(0)
+            doc = fitz.open(stream=pdf_path.read(), filetype="pdf")
+        else:
+            doc = fitz.open(pdf_path) 
+    except Exception as e:
+        print(f"Erro ao abrir o arquivo PDF: {e}")
+        return []
 
-        all_reports = []
+    all_reports = []
 
-        # Processa página por página
-        for page_num in range(doc.page_count):
-            page = doc.load_page(page_num)
-            text = page.get_text("text")
+    # Processa página por página
+    for page_num in range(doc.page_count):
+        page = doc.load_page(page_num)
+        text = page.get_text("text")
+        
+        # Garante que é uma página de Cartão de Ponto
+        if "Cartão de Ponto" not in text:
+            continue
+            
+        # --- 1. Extração de Dados de Cabeçalho (REGEX ROBUSTAS) ---
+        
+        # CORREÇÃO 1: Nome do Funcionário. Captura o nome, lidando com acento no FUNCIONÁRIO e parando antes do "CPF"
+        regex_nome = r"NOME DO FUNCION[AÁ]RIO:\s*(.+?)\s*CPF"
+        
+        regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)" # Esta já estava correta
+        regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
+        
+        # CORREÇÃO 2: TOTAIS. Ultra-robusta. Ignora artefatos de tabela/espaços ([\s\S]*?) até encontrar os 3 valores em sequência.
+        # Grupo 1: Dias Trabalhados (\d+)
+        # Grupo 2: Extra 50% ([\d:]{4,5})
+        # Grupo 3: Extras Total ([\d:]{4,5})
+        regex_totais = r"TOTAIS.*?(\d+)\s*[\s\S]*?([\d:]{4,5})\s*[\s\S]*?([\d:]{4,5})"
+        
+        # Captura o bloco de Alterações/Justificativas
+        regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCION[AÁ]RIO:|\Z)" 
+        
+        
+        # É crucial usar re.DOTALL no totais_match para que o ponto ( . ) pegue quebras de linha
+        nome = re.search(regex_nome, text)
+        matricula = re.search(regex_matricula, text)
+        periodo_match = re.search(regex_periodo, text)
+        totais_match = re.search(regex_totais, text, re.DOTALL) 
+        ausencias_match = re.search(regex_ausencias, text, re.DOTALL | re.IGNORECASE)
 
-            if "Cartão de Ponto" not in text:
-                continue
 
-            # --- 1. Extração de Dados de Cabeçalho (REGEX ROBUSTAS) ---
+        # Se qualquer uma das informações chaves não for encontrada, pula para a próxima página
+        if not nome or not matricula or not totais_match:
+            continue
+        
+        
+        # --- Extração de TOTAIS (Usando os grupos da nova Regex) --- 
+        dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
+        extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
+        extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
 
-            # Aceita FUNCIONARIO ou FUNCIONÁRIO e captura até o próximo campo (CPF ou NÚMERO)
-            regex_nome = r"NOME DO FUNCION[AÁ]RIO: (.*?)(?:CPF|NÚMERO)"
-            regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)"
-            regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
+        
+        # --- 2. Processamento das Justificativas e Ausências (Não alterado) ---
+        
+        ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
+        
+        num_atestados = ausencias_texto.lower().count("atestado médico")
+        
+        # Procura por texto que indica Falta no detalhe diário
+        faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
+        num_faltas = len(faltas_text)
 
-            # Captura TOTAIS e busca os três valores numéricos/tempo no texto que se segue (Dias, Extra 50%, Extras Total)
-            regex_totais = r"TOTAIS.*?(\d+)\s+([\d:]{4,5})\s+([\d:]{4,5})"
+        total_ausencias = num_faltas + num_atestados
+        
+        justificativas_limpas = ausencias_texto.replace('\n', ' | ')
+        justificativas_limpas = re.sub(r"• ", "", justificativas_limpas)
+        
+        
+        # --- 3. Criação do Dicionário de Relatório ---
+        
+        report = {
+            "Nome do Funcionário": nome.group(1).strip(),
+            "Matrícula": matricula.group(1).strip(),
+            "Período de Apuração": f"{periodo_match.group(1)} a {periodo_match.group(2)}" if periodo_match else 'N/A',
+            "Dias Trabalhados (Registrados)": dias_trabalhados,
+            "Horas Extras 50%": extra_50,
+            "Horas Extras Total": extras_total,
+            "Total de Faltas e Atestados": total_ausencias,
+            "Detalhe das Justificativas": justificativas_limpas,
+        }
+        
+        all_reports.append(report)
 
-            # Captura o bloco de Alterações/Justificativas
-            regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCION[AÁ]RIO:|\Z)"
-
-            nome = re.search(regex_nome, text, re.DOTALL | re.IGNORECASE)
-            matricula = re.search(regex_matricula, text)
-            periodo_match = re.search(regex_periodo, text)
-            # re.DOTALL é crucial aqui para que o ponto ( . ) também inclua quebras de linha
-            totais_match = re.search(regex_totais, text, re.DOTALL)
-            ausencias_match = re.search(regex_ausencias, text, re.DOTALL | re.IGNORECASE)
-
-            if not nome or not matricula or not totais_match:
-                continue
-
-            # Extração de TOTAIS (Grupos 1, 2 e 3)
-            dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
-            extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
-            extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
-
-            # --- 2. Processamento das Justificativas e Ausências ---
-
-            ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
-
-            num_atestados = ausencias_texto.lower().count("atestado médico")
-
-            # Contagem de Faltas (procura na tabela de ponto diário)
-            faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
-            num_faltas = len(faltas_text)
-
-            total_ausencias = num_faltas + num_atestados
-
-            justificativas_limpas = ausencias_texto.replace('\n', ' | ')
-            justificativas_limpas = re.sub(r"• ", "", justificativas_limpas)
-
-            # --- 3. Criação do Dicionário de Relatório ---
-
-            report = {
-                "Nome do Funcionário": nome.group(1).strip(),
-                "Matrícula": matricula.group(1).strip(),
-                "Período de Apuração": f"{periodo_match.group(1)} a {periodo_match.group(2)}" if periodo_match else 'N/A',
-                "Dias Trabalhados (Registrados)": dias_trabalhados,
-                "Horas Extras 50%": extra_50,
-                "Horas Extras Total": extras_total,
-                "Total de Faltas e Atestados": total_ausencias,
-                "Detalhe das Justificativas": justificativas_limpas,
-            }
-
-            all_reports.append(report)
-
-        return all_reports
-
-    @st.cache_data
-    def convert_df_to_excel_polly(df):
-        """
-        Converte o DataFrame para um arquivo Excel (.xlsx) em memória.
-        """
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Relatorio_Ponto_Polly')
-        processed_data = output.getvalue()
-        return processed_data
+    return all_reports
 
     # -------------------------
     # Aba Blitz
