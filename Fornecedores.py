@@ -166,7 +166,12 @@ else:
     # =========================
     @st.cache_data
     def extract_employee_data_polly(pdf_path):
+        """
+        Extrai os dados de ponto de cada funcionário do PDF.
+        Função adaptada para o formato Polly com REGEX mais robustas.
+        """
         try:
+            # Abre o PDF usando BytesIO se o caminho for bytes, ou diretamente
             if isinstance(pdf_path, BytesIO):
                 doc = fitz.open(stream=pdf_path.read(), filetype="pdf")
             else:
@@ -177,6 +182,7 @@ else:
 
         all_reports = []
 
+        # Processa página por página
         for page_num in range(doc.page_count):
             page = doc.load_page(page_num)
             text = page.get_text("text")
@@ -184,32 +190,50 @@ else:
             if "Cartão de Ponto" not in text:
                 continue
 
+            # --- 1. Extração de Dados de Cabeçalho (REGEX ROBUSTAS) ---
+
+            # Aceita FUNCIONARIO ou FUNCIONÁRIO e captura até o próximo campo (CPF ou NÚMERO)
             regex_nome = r"NOME DO FUNCION[AÁ]RIO: (.*?)(?:CPF|NÚMERO)"
             regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)"
             regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
+
+            # Captura TOTAIS e busca os três valores numéricos/tempo no texto que se segue (Dias, Extra 50%, Extras Total)
             regex_totais = r"TOTAIS.*?(\d+)\s+([\d:]{4,5})\s+([\d:]{4,5})"
+
+            # Captura o bloco de Alterações/Justificativas
             regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCION[AÁ]RIO:|\Z)"
 
             nome = re.search(regex_nome, text, re.DOTALL | re.IGNORECASE)
             matricula = re.search(regex_matricula, text)
             periodo_match = re.search(regex_periodo, text)
+            # re.DOTALL é crucial aqui para que o ponto ( . ) também inclua quebras de linha
             totais_match = re.search(regex_totais, text, re.DOTALL)
             ausencias_match = re.search(regex_ausencias, text, re.DOTALL | re.IGNORECASE)
 
             if not nome or not matricula or not totais_match:
                 continue
 
+            # Extração de TOTAIS (Grupos 1, 2 e 3)
             dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
             extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
             extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
 
+            # --- 2. Processamento das Justificativas e Ausências ---
+
             ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
+
             num_atestados = ausencias_texto.lower().count("atestado médico")
+
+            # Contagem de Faltas (procura na tabela de ponto diário)
             faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
             num_faltas = len(faltas_text)
+
             total_ausencias = num_faltas + num_atestados
+
             justificativas_limpas = ausencias_texto.replace('\n', ' | ')
             justificativas_limpas = re.sub(r"• ", "", justificativas_limpas)
+
+            # --- 3. Criação do Dicionário de Relatório ---
 
             report = {
                 "Nome do Funcionário": nome.group(1).strip(),
@@ -228,10 +252,14 @@ else:
 
     @st.cache_data
     def convert_df_to_excel_polly(df):
+        """
+        Converte o DataFrame para um arquivo Excel (.xlsx) em memória.
+        """
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Relatorio_Ponto_Polly')
-        return output.getvalue()
+        processed_data = output.getvalue()
+        return processed_data
 
     # -------------------------
     # Aba Blitz
@@ -367,7 +395,7 @@ else:
                             }
                             detalhes.append(registro)
 
-            # =========================
+                # =========================
             # Criação dos DataFrames
             # =========================
             df = pd.DataFrame(dados_funcionarios).fillna(0)
