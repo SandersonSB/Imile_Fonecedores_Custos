@@ -6,3 +6,4 @@ pytesseract==0.3.13
 Pillow
 openpyxl
 PyPDF2==3.0.1
+pip install PyMuPDF
