@@ -158,7 +158,7 @@ if not st.session_state.iniciado:
 # Resto do app só roda depois de iniciar
 # =========================
 else:
-    tab1, tab2 = st.tabs(["📂 Blitz", "🚧 Demais Fornecedores"])
+    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
 
 
     # -------------------------
@@ -410,5 +410,9 @@ else:
     # Aba Demais fornecedores
     # -------------------------
     with tab2:
-        st.header("🚧 Em desenvolvimento")
-        st.info("Esta aba ainda está em desenvolvimento e será liberada em breve.")
+        st.header("🎙️ Aba Polly")
+        st.write("Em construção – espaço reservado para funcionalidades relacionadas à Polly.")
+    
+    with tab3:
+        st.header("🔍 Aba D0")
+        st.write("Em construção – espaço reservado para funcionalidades relacionadas ao D0.")
