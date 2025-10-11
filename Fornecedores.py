@@ -268,12 +268,10 @@ if not st.session_state.iniciado:
    </div>
    """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([3,2,3])
+        col1, col2, col3 = st.columns([3, 2, 3])
     with col2:
-    # Criar 3 colunas e colocar o botão no meio
-    col1, col2, col3 = st.columns([1,1,1])
-    col1, col2, col3 = st.columns([3,2,2])  
-
+        if st.button("Iniciar 🚀"):
+            st.session_state.iniciado = True
     with col2:  
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
