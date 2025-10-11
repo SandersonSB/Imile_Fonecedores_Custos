@@ -208,22 +208,25 @@ else:
                 continue
 
             # --- 1. Extração de Dados de Cabeçalho (REGEX) ---
-            regex_nome = r"NOME DO FUNCIONARIO: (.+?)\n"
+            # CORREÇÃO 1: Aceita FUNCIONARIO ou FUNCIONÁRIO, ignora espaços e usa 'CPF' como âncora final.
+            regex_nome = r"NOME DO FUNCION[AÁ]RIO:\s*(.+?)\s*CPF" 
             regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)"
             regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
-            regex_totais = r"TOTAIS\n[\s\S]*?(\d+)\n(.+?)\n(.+?)\n"
+            # CORREÇÃO 2: Busca por TOTAIS e pelos 3 campos (dias, extra_50, extra_total) de forma flexível, procurando formatos de hora/número ([\d:]{1,5})
+            regex_totais = r"TOTAIS.*?(\d+)\s*[\s\S]*?([\d:]{1,5})\s*[\s\S]*?([\d:]{1,5})"
             regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCIONARIO:|\Z)"
 
-            nome = re.search(regex_nome, text)
+            # Adicionando re.DOTALL a nome e totais para permitir que o '.' inclua quebras de linha.
+            nome = re.search(regex_nome, text, re.DOTALL)
             matricula = re.search(regex_matricula, text)
             periodo_match = re.search(regex_periodo, text)
-            totais_match = re.search(regex_totais, text)
+            totais_match = re.search(regex_totais, text, re.DOTALL)
             ausencias_match = re.search(regex_ausencias, text, re.DOTALL)
 
             if not nome or not matricula or not totais_match:
                 continue
 
-            # Extração de TOTAIS
+            # Extração de TOTAIS (Grupos: 1=dias, 2=extra_50, 3=extras_total)
             dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
             extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
             extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
@@ -231,6 +234,7 @@ else:
             # --- 2. Processamento das Justificativas e Ausências ---
             ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
             num_atestados = ausencias_texto.lower().count("atestado médico")
+            # A busca por Faltas é feita no corpo do texto (onde é mais provável que ocorra)
             faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
             num_faltas = len(faltas_text)
             total_ausencias = num_faltas + num_atestados
@@ -253,6 +257,7 @@ else:
             all_reports.append(report)
 
         return all_reports
+
 
     @st.cache_data
     def convert_df_to_excel_polly(df):
