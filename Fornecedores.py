@@ -1,6 +1,6 @@
-# ========================= 
-# fornecedores_streamlit.py
-# =========================
+# ==========================================================
+# Fornecedores.py - Assistente de Custos | Imile
+# ==========================================================
 
 import streamlit as st
 import pandas as pd
@@ -10,15 +10,9 @@ from difflib import SequenceMatcher
 from io import BytesIO
 import numpy as np
 import fitz  # Biblioteca para processar PDFs escaneados (PyMuPDF)
-
-# Substitua o comentário "# ... seus outros imports" por este bloco:
 import os
 import pytesseract
 from PIL import Image
-# Nota: xlsxwriter não precisa de import explícito aqui a menos que faça uso direto.
-# Se você estiver usando engine='xlsxwriter' no to_excel, certifique-se de que a
-# dependência 'xlsxwriter' esteja instalada no ambiente (pip install xlsxwriter).
-
 
 # =========================
 # Funções auxiliares
@@ -44,6 +38,7 @@ def normalizar_nome_coluna(nome):
         return "desconta_dsr"
     return None
 
+
 def padronizar_tempo(valor):
     if not valor:
         return "00:00"
@@ -53,6 +48,7 @@ def padronizar_tempo(valor):
         return str(valor).strip()
     return "00:00"
 
+
 def limpar_texto(texto):
     if texto is None:
         return ""
@@ -60,6 +56,7 @@ def limpar_texto(texto):
     texto = re.sub(r'[^A-Z0-9 ÁÀÂÃÉÊÍÓÔÕÚÇ]', ' ', texto)
     texto = re.sub(r'\s+', ' ', texto)
     return texto.strip()
+
 
 def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     linha = limpar_texto(linha)
@@ -73,6 +70,7 @@ def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     if melhor_ratio >= limiar:
         return melhor_tema
     return None
+
 
 def hora_para_minutos(hora):
     if not hora or str(hora).strip() == "":
@@ -91,8 +89,10 @@ def hora_para_minutos(hora):
     except:
         return 0
 
+
 def limpa_valor(v):
     return str(v or "").strip()
+
 
 def eh_horario(valor):
     if not isinstance(valor, str):
@@ -330,9 +330,30 @@ def convert_df_to_excel_polly(df):
     processed_data = output.getvalue()
     return processed_data
 
-    # -------------------------
-    # Aba Blitz
-    # -------------------------
+# -------------------------
+# Aba Blitz
+# -------------------------
+with st.container():
+    with st.empty():
+        pass
+
+# O bloco da Aba Blitz foi reposicionado para o nível da UI (fora de funções)
+with st.tabs(["dummy"]):
+    pass
+
+# Implementação da Aba Blitz (mantendo sua lógica original e indentação padronizada)
+# Observação: o conteúdo original da Aba Blitz foi mantido; aqui reorganizamos para
+# que o código execute no escopo correto do Streamlit após a criação das abas.
+
+with st.session_state.get('iniciado', False) and st.container():
+    # Se as abas foram criadas, o bloco abaixo será executado no contexto correto.
+    try:
+        tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
+    except Exception:
+        # Se as abas já existem em outro escopo, ignoramos essa recriação.
+        tab1 = tab2 = tab3 = None
+
+if tab1 is not None:
     with tab1:
         st.header("📂 Upload do PDF de Apontamentos")
         uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"], key="blitz_uploader")
@@ -588,9 +609,10 @@ def convert_df_to_excel_polly(df):
                 mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
             )
 
-    # -------------------------
-    # Aba Polly
-    # -------------------------
+# -------------------------
+# Aba Polly
+# -------------------------
+if tab2 is not None:
     with tab2:
         st.header("🎙️ Processamento de Cartão de Ponto (Polly)")
         st.markdown("---")
