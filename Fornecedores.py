@@ -447,5 +447,8 @@ else:
     # -------------------------
     with tab3:
         st.header("🔍 Aba Polly")
-        st.write("Em construção – espaço reservado para funcionalidades relacionadas a Polly.")
+        st.markdown("""
+    Acesse o notebook do Google Colab clicando no link abaixo:
 
+    [Abrir notebook Colab](https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#)
+    """)
