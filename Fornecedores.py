@@ -182,25 +182,13 @@ if not st.session_state.iniciado:
 # Resto do app só roda depois de iniciar
 # =========================
 else:
-    # Cria as abas ao entrar no app
+    # Cria as abas ao entrar no app (uma única vez)
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
 
 # =========================================================================
 # PARTE 1: FUNÇÕES DE LÓGICA (COPIAR PARA O TOPO DO SEU ARQUIVO PYTHON)
 # =========================================================================
-# Certifique-se de que os imports abaixo estão no topo do seu script principal:
-# import streamlit as st
-# import pandas as pd
-# import fitz # PyMuPDF
-# import pytesseract
-# from PIL import Image
-# from io import BytesIO
-# import re
-# import os
-# import xlsxwriter (necessário para o pandas to_excel)
-
 try:
-    # Tenta configurar o Tesseract (Ajuste o caminho se necessário no seu ambiente de deploy)
     os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/4.00/tessdata'
     pytesseract.get_tesseract_version()
     TESSERACT_INSTALADO = True
@@ -209,13 +197,11 @@ except pytesseract.TesseractNotFoundError:
 
 
 def extrair_dados_tabela(texto_pagina, status):
-    """ Extrai nome, matrícula, totais e justificativas de uma única página. """
     dados = {
         'Nome': 'Não encontrado', 'Matrícula': 'Não encontrado', 'Dias Trabalhados': 0, 'Extras Total': '00:00',
         'Folga': 0, 'Atestado Médico': 0, 'Falta': 0, 'Abonar ausência': 0, 'Status': status
     }
     
-    # Extração de Identificação (Regex aprimorado para delimitar o nome)
     try:
         nome_match = re.search(r'(?:NOME DO FUNCIONARIO|NOME DO FUNCIONÁRIO):\s*(.*?)(?:\n|NÚMERO DE MATRÍCULA)', texto_pagina, re.DOTALL)
         if nome_match:
@@ -225,7 +211,6 @@ def extrair_dados_tabela(texto_pagina, status):
             dados['Matrícula'] = matr_match.group(1).strip()
     except: pass
     
-    # Extração de Totais
     try:
         linhas_totais = [l for l in texto_pagina.split('\n') if l.strip().startswith('TOTAIS')]
         if linhas_totais:
@@ -235,7 +220,6 @@ def extrair_dados_tabela(texto_pagina, status):
                 dados['Extras Total'] = campos[-1].strip() 
     except: pass
 
-    # Contagem de Justificativas
     texto_maiusculo = texto_pagina.upper()
     termos_busca = {'Folga': 'FOLGA', 'Atestado Médico': 'ATESTADO MÉDICO', 'Falta': 'FALTA'}
     for chave, termo in termos_busca.items():
@@ -247,7 +231,6 @@ def extrair_dados_tabela(texto_pagina, status):
 
 
 def extrair_texto_com_ocr(pagina):
-    """Converte a página PDF em imagem e usa Tesseract para OCR."""
     if not TESSERACT_INSTALADO: return ""
     try:
         zoom_x, zoom_y = 2.0, 2.0
@@ -264,7 +247,6 @@ def extrair_texto_com_ocr(pagina):
 
 @st.cache_data(show_spinner=False)
 def extract_employee_data_polly(pdf_bytes):
-    """ Função principal que gerencia o processamento de todas as páginas do PDF. """
     dados_finais = []
     
     try:
@@ -289,14 +271,12 @@ def extract_employee_data_polly(pdf_bytes):
 
     if not dados_finais: return []
 
-    # Limpeza e Deduplicação
     df_consolidado = pd.DataFrame(dados_finais)
     df_final = df_consolidado[df_consolidado['Nome'].str.contains('Página') == False]
     df_final = df_final[df_final['Nome'] != 'Não encontrado'].drop_duplicates(subset=['Matrícula'])
 
     if df_final.empty: return []
 
-    # Conversão e Cálculos de Resumo
     for col in ['Dias Trabalhados', 'Folga', 'Atestado Médico', 'Falta', 'Abonar ausência']:
         try:
             df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0).astype(int)
@@ -308,7 +288,6 @@ def extract_employee_data_polly(pdf_bytes):
         ', Falta: ' + df_final['Falta'].astype(str) + ', Abono: ' + df_final['Abonar ausência'].astype(str)
     )
     
-    # Renomeação e Colunas Placeholder
     df_final = df_final.rename(columns={
         'Nome': 'Nome do Funcionário',
         'Dias Trabalhados': 'Dias Trabalhados (Registrados)',
@@ -322,9 +301,7 @@ def extract_employee_data_polly(pdf_bytes):
 
 
 def convert_df_to_excel_polly(df):
-    """ Converte o DataFrame para o formato XLSX (Excel). """
     output = BytesIO()
-    # Usando engine='xlsxwriter' que deve ser instalado via pip install xlsxwriter
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer: 
         df.to_excel(writer, index=False, sheet_name='Relatorio Polly')
     processed_data = output.getvalue()
