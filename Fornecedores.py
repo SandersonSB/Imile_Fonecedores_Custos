@@ -10,7 +10,15 @@ from difflib import SequenceMatcher
 from io import BytesIO
 import numpy as np
 import fitz  # Biblioteca para processar PDFs escaneados (PyMuPDF)
-# ... seus outros imports
+
+# Substitua o comentário "# ... seus outros imports" por este bloco:
+import os
+import pytesseract
+from PIL import Image
+# Nota: xlsxwriter não precisa de import explícito aqui a menos que faça uso direto.
+# Se você estiver usando engine='xlsxwriter' no to_excel, certifique-se de que a
+# dependência 'xlsxwriter' esteja instalada no ambiente (pip install xlsxwriter).
+
 
 # =========================
 # Funções auxiliares
