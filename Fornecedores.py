@@ -1,6 +1,6 @@
-# ==========================================================
-# Fornecedores.py - Assistente de Custos | Imile
-# ==========================================================
+# ========================= 
+# fornecedores_streamlit.py
+# =========================
 
 import streamlit as st
 import pandas as pd
@@ -10,9 +10,7 @@ from difflib import SequenceMatcher
 from io import BytesIO
 import numpy as np
 import fitz  # Biblioteca para processar PDFs escaneados (PyMuPDF)
-import os
-import pytesseract
-from PIL import Image
+# ... seus outros imports
 
 # =========================
 # Funções auxiliares
@@ -38,7 +36,6 @@ def normalizar_nome_coluna(nome):
         return "desconta_dsr"
     return None
 
-
 def padronizar_tempo(valor):
     if not valor:
         return "00:00"
@@ -48,7 +45,6 @@ def padronizar_tempo(valor):
         return str(valor).strip()
     return "00:00"
 
-
 def limpar_texto(texto):
     if texto is None:
         return ""
@@ -56,7 +52,6 @@ def limpar_texto(texto):
     texto = re.sub(r'[^A-Z0-9 ÁÀÂÃÉÊÍÓÔÕÚÇ]', ' ', texto)
     texto = re.sub(r'\s+', ' ', texto)
     return texto.strip()
-
 
 def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     linha = limpar_texto(linha)
@@ -70,7 +65,6 @@ def achar_tema_mais_proximo(linha, lista_temas, limiar=0.6):
     if melhor_ratio >= limiar:
         return melhor_tema
     return None
-
 
 def hora_para_minutos(hora):
     if not hora or str(hora).strip() == "":
@@ -89,10 +83,8 @@ def hora_para_minutos(hora):
     except:
         return 0
 
-
 def limpa_valor(v):
     return str(v or "").strip()
-
 
 def eh_horario(valor):
     if not isinstance(valor, str):
@@ -113,6 +105,7 @@ def eh_horario(valor):
 # =========================
 st.set_page_config(page_title="Processamento de Fornecedores", layout="wide")
 
+# usa session_state para manter o estado do botão Iniciar
 if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
@@ -138,6 +131,7 @@ if not st.session_state.iniciado:
             margin: 10px auto 30px auto;
         }
 
+        /* Força o botão do Streamlit a centralizar */
         div.stButton {
             display: flex;
             justify-content: center;
@@ -169,6 +163,7 @@ if not st.session_state.iniciado:
     </div>
     """, unsafe_allow_html=True)
 
+    # Criar 3 colunas e colocar o botão no meio
     col1, col2, col3 = st.columns([3,2,3])
     with col2:
         if st.button("Iniciar 🚀"):
@@ -176,15 +171,28 @@ if not st.session_state.iniciado:
             st.experimental_rerun()
 
 # =========================
-# Resto do app
+# Resto do app só roda depois de iniciar
 # =========================
 else:
+    # Cria as abas ao entrar no app
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
 
 # =========================================================================
-# Funções principais
+# PARTE 1: FUNÇÕES DE LÓGICA (COPIAR PARA O TOPO DO SEU ARQUIVO PYTHON)
 # =========================================================================
+# Certifique-se de que os imports abaixo estão no topo do seu script principal:
+# import streamlit as st
+# import pandas as pd
+# import fitz # PyMuPDF
+# import pytesseract
+# from PIL import Image
+# from io import BytesIO
+# import re
+# import os
+# import xlsxwriter (necessário para o pandas to_excel)
+
 try:
+    # Tenta configurar o Tesseract (Ajuste o caminho se necessário no seu ambiente de deploy)
     os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/4.00/tessdata'
     pytesseract.get_tesseract_version()
     TESSERACT_INSTALADO = True
@@ -193,15 +201,45 @@ except pytesseract.TesseractNotFoundError:
 
 
 def extrair_dados_tabela(texto_pagina, status):
+    """ Extrai nome, matrícula, totais e justificativas de uma única página. """
     dados = {
         'Nome': 'Não encontrado', 'Matrícula': 'Não encontrado', 'Dias Trabalhados': 0, 'Extras Total': '00:00',
         'Folga': 0, 'Atestado Médico': 0, 'Falta': 0, 'Abonar ausência': 0, 'Status': status
     }
-    # ... (restante da função igual ao seu código, mantendo todas as regras)
+    
+    # Extração de Identificação (Regex aprimorado para delimitar o nome)
+    try:
+        nome_match = re.search(r'(?:NOME DO FUNCIONARIO|NOME DO FUNCIONÁRIO):\s*(.*?)(?:\n|NÚMERO DE MATRÍCULA)', texto_pagina, re.DOTALL)
+        if nome_match:
+            dados['Nome'] = nome_match.group(1).split('\n')[0].strip()
+        matr_match = re.search(r'NÚMERO DE MATRÍCULA:\s*(\d+)', texto_pagina)
+        if matr_match:
+            dados['Matrícula'] = matr_match.group(1).strip()
+    except: pass
+    
+    # Extração de Totais
+    try:
+        linhas_totais = [l for l in texto_pagina.split('\n') if l.strip().startswith('TOTAIS')]
+        if linhas_totais:
+            campos = [c.strip() for c in linhas_totais[0].split() if c.strip() and c.strip() != 'TOTAIS']
+            if len(campos) >= 3:
+                dados['Dias Trabalhados'] = int(campos[-3].replace(',', '.').split('.')[0])
+                dados['Extras Total'] = campos[-1].strip() 
+    except: pass
+
+    # Contagem de Justificativas
+    texto_maiusculo = texto_pagina.upper()
+    termos_busca = {'Folga': 'FOLGA', 'Atestado Médico': 'ATESTADO MÉDICO', 'Falta': 'FALTA'}
+    for chave, termo in termos_busca.items():
+        dados[chave] = texto_maiusculo.count(termo)
+    if re.search(r'ABONAR AUSÊNCIA NO PERÍODO', texto_pagina.upper()):
+        dados['Abonar ausência'] = 1
+    
     return dados
 
 
 def extrair_texto_com_ocr(pagina):
+    """Converte a página PDF em imagem e usa Tesseract para OCR."""
     if not TESSERACT_INSTALADO: return ""
     try:
         zoom_x, zoom_y = 2.0, 2.0
@@ -218,44 +256,75 @@ def extrair_texto_com_ocr(pagina):
 
 @st.cache_data(show_spinner=False)
 def extract_employee_data_polly(pdf_bytes):
+    """ Função principal que gerencia o processamento de todas as páginas do PDF. """
     dados_finais = []
-    # ... (restante da função igual ao seu código)
-    return pd.DataFrame(dados_finais).to_dict('records')
+    
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for i in range(doc.page_count):
+            pagina = doc.load_page(i)
+            texto_nativo = pagina.get_text("text")
+            
+            if len(texto_nativo.strip()) > 50:
+                dados = extrair_dados_tabela(texto_nativo, 'PDF Nativo')
+            else:
+                texto_ocr = extrair_texto_com_ocr(pagina)
+                if len(texto_ocr.strip()) > 50:
+                    dados = extrair_dados_tabela(texto_ocr, 'Processado por OCR')
+                else:
+                    dados = {'Nome': f'Página {i+1} - Falha no Processamento', 'Matrícula': '-', 'Status': 'FALHA OCR/VAZIO'}
+            dados_finais.append(dados)
+        doc.close()
+    except Exception as e:
+        st.error(f"Erro na função principal de extração: {e}")
+        return []
+
+    if not dados_finais: return []
+
+    # Limpeza e Deduplicação
+    df_consolidado = pd.DataFrame(dados_finais)
+    df_final = df_consolidado[df_consolidado['Nome'].str.contains('Página') == False]
+    df_final = df_final[df_final['Nome'] != 'Não encontrado'].drop_duplicates(subset=['Matrícula'])
+
+    if df_final.empty: return []
+
+    # Conversão e Cálculos de Resumo
+    for col in ['Dias Trabalhados', 'Folga', 'Atestado Médico', 'Falta', 'Abonar ausência']:
+        try:
+            df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0).astype(int)
+        except: pass
+
+    df_final['Total de Faltas e Atestados'] = df_final['Atestado Médico'] + df_final['Falta']
+    df_final['Detalhe das Justificativas'] = (
+        'Folga: ' + df_final['Folga'].astype(str) + ', AM: ' + df_final['Atestado Médico'].astype(str) + 
+        ', Falta: ' + df_final['Falta'].astype(str) + ', Abono: ' + df_final['Abonar ausência'].astype(str)
+    )
+    
+    # Renomeação e Colunas Placeholder
+    df_final = df_final.rename(columns={
+        'Nome': 'Nome do Funcionário',
+        'Dias Trabalhados': 'Dias Trabalhados (Registrados)',
+        'Extras Total': 'Horas Extras Total',
+    })
+    
+    df_final['Período de Apuração'] = 'N/A'
+    df_final['Horas Extras 50%'] = 'N/A' 
+
+    return df_final.to_dict('records')
 
 
 def convert_df_to_excel_polly(df):
+    """ Converte o DataFrame para o formato XLSX (Excel). """
     output = BytesIO()
+    # Usando engine='xlsxwriter' que deve ser instalado via pip install xlsxwriter
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer: 
         df.to_excel(writer, index=False, sheet_name='Relatorio Polly')
     processed_data = output.getvalue()
     return processed_data
 
-# -------------------------
-# Aba Blitz
-# -------------------------
-with st.container():
-    with st.empty():
-        pass
-
-# O bloco da Aba Blitz foi reposicionado para o nível da UI (fora de funções)
-else:
-    # Cria as abas ao entrar no app (uma única vez)
-    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
-
-
-# Implementação da Aba Blitz (mantendo sua lógica original e indentação padronizada)
-# Observação: o conteúdo original da Aba Blitz foi mantido; aqui reorganizamos para
-# que o código execute no escopo correto do Streamlit após a criação das abas.
-
-with st.session_state.get('iniciado', False) and st.container():
-    # Se as abas foram criadas, o bloco abaixo será executado no contexto correto.
-    try:
-        tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
-    except Exception:
-        # Se as abas já existem em outro escopo, ignoramos essa recriação.
-        tab1 = tab2 = tab3 = None
-
-if tab1 is not None:
+    # -------------------------
+    # Aba Blitz
+    # -------------------------
     with tab1:
         st.header("📂 Upload do PDF de Apontamentos")
         uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"], key="blitz_uploader")
@@ -511,10 +580,9 @@ if tab1 is not None:
                 mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
             )
 
-# -------------------------
-# Aba Polly
-# -------------------------
-if tab2 is not None:
+    # -------------------------
+    # Aba Polly
+    # -------------------------
     with tab2:
         st.header("🎙️ Processamento de Cartão de Ponto (Polly)")
         st.markdown("---")
