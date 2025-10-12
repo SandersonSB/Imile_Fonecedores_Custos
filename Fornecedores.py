@@ -445,7 +445,7 @@ else:
     # -------------------------
     # Aba Polly
     # -------------------------
-    with tab2:
+    with tab3:
         st.header("🔍 Aba Polly")
         st.write("Em construção – espaço reservado para funcionalidades relacionadas a Polly.")
 
