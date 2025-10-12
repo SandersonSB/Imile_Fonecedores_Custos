@@ -315,8 +315,10 @@ with st.container():
         pass
 
 # O bloco da Aba Blitz foi reposicionado para o nível da UI (fora de funções)
-with st.tabs(["dummy"]):
-    pass
+else:
+    # Cria as abas ao entrar no app (uma única vez)
+    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
+
 
 # Implementação da Aba Blitz (mantendo sua lógica original e indentação padronizada)
 # Observação: o conteúdo original da Aba Blitz foi mantido; aqui reorganizamos para
