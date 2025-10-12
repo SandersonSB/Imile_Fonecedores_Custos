@@ -177,103 +177,150 @@ else:
     # Cria as abas ao entrar no app
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🎙️ Polly", "🔍 D0"])
 
-    # =========================
-    # Funções auxiliares para Polly (Ponto)
-    # =========================
-    @st.cache_data
-    def extract_employee_data_polly(pdf_path):
-        """
-        Extrai os dados de ponto de cada funcionário do PDF.
-        Função adaptada para o formato Polly.
-        """
-        try:
-            # Abre o PDF usando BytesIO se o caminho for bytes, ou diretamente
-            if isinstance(pdf_path, BytesIO):
-                doc = fitz.open(stream=pdf_path.read(), filetype="pdf")
+# =========================================================================
+# PARTE 1: FUNÇÕES DE LÓGICA (COPIAR PARA O TOPO DO SEU ARQUIVO PYTHON)
+# =========================================================================
+# Certifique-se de que os imports abaixo estão no topo do seu script principal:
+# import streamlit as st
+# import pandas as pd
+# import fitz # PyMuPDF
+# import pytesseract
+# from PIL import Image
+# from io import BytesIO
+# import re
+# import os
+# import xlsxwriter (necessário para o pandas to_excel)
+
+try:
+    # Tenta configurar o Tesseract (Ajuste o caminho se necessário no seu ambiente de deploy)
+    os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/4.00/tessdata'
+    pytesseract.get_tesseract_version()
+    TESSERACT_INSTALADO = True
+except pytesseract.TesseractNotFoundError:
+    TESSERACT_INSTALADO = False
+
+
+def extrair_dados_tabela(texto_pagina, status):
+    """ Extrai nome, matrícula, totais e justificativas de uma única página. """
+    dados = {
+        'Nome': 'Não encontrado', 'Matrícula': 'Não encontrado', 'Dias Trabalhados': 0, 'Extras Total': '00:00',
+        'Folga': 0, 'Atestado Médico': 0, 'Falta': 0, 'Abonar ausência': 0, 'Status': status
+    }
+    
+    # Extração de Identificação (Regex aprimorado para delimitar o nome)
+    try:
+        nome_match = re.search(r'(?:NOME DO FUNCIONARIO|NOME DO FUNCIONÁRIO):\s*(.*?)(?:\n|NÚMERO DE MATRÍCULA)', texto_pagina, re.DOTALL)
+        if nome_match:
+            dados['Nome'] = nome_match.group(1).split('\n')[0].strip()
+        matr_match = re.search(r'NÚMERO DE MATRÍCULA:\s*(\d+)', texto_pagina)
+        if matr_match:
+            dados['Matrícula'] = matr_match.group(1).strip()
+    except: pass
+    
+    # Extração de Totais
+    try:
+        linhas_totais = [l for l in texto_pagina.split('\n') if l.strip().startswith('TOTAIS')]
+        if linhas_totais:
+            campos = [c.strip() for c in linhas_totais[0].split() if c.strip() and c.strip() != 'TOTAIS']
+            if len(campos) >= 3:
+                dados['Dias Trabalhados'] = int(campos[-3].replace(',', '.').split('.')[0])
+                dados['Extras Total'] = campos[-1].strip() 
+    except: pass
+
+    # Contagem de Justificativas
+    texto_maiusculo = texto_pagina.upper()
+    termos_busca = {'Folga': 'FOLGA', 'Atestado Médico': 'ATESTADO MÉDICO', 'Falta': 'FALTA'}
+    for chave, termo in termos_busca.items():
+        dados[chave] = texto_maiusculo.count(termo)
+    if re.search(r'ABONAR AUSÊNCIA NO PERÍODO', texto_pagina.upper()):
+        dados['Abonar ausência'] = 1
+    
+    return dados
+
+
+def extrair_texto_com_ocr(pagina):
+    """Converte a página PDF em imagem e usa Tesseract para OCR."""
+    if not TESSERACT_INSTALADO: return ""
+    try:
+        zoom_x, zoom_y = 2.0, 2.0
+        matriz = fitz.Matrix(zoom_x, zoom_y)
+        pix = pagina.get_pixmap(matrix=matriz, alpha=False)
+        img_data = pix.tobytes("ppm")
+        img = Image.open(BytesIO(img_data))
+        texto_ocr = pytesseract.image_to_string(img, lang='por')
+        return texto_ocr
+    except Exception as e:
+        print(f"ERRO CRÍTICO no OCR: {e}")
+        return ""
+
+
+@st.cache_data(show_spinner=False)
+def extract_employee_data_polly(pdf_bytes):
+    """ Função principal que gerencia o processamento de todas as páginas do PDF. """
+    dados_finais = []
+    
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for i in range(doc.page_count):
+            pagina = doc.load_page(i)
+            texto_nativo = pagina.get_text("text")
+            
+            if len(texto_nativo.strip()) > 50:
+                dados = extrair_dados_tabela(texto_nativo, 'PDF Nativo')
             else:
-                doc = fitz.open(pdf_path)
-        except Exception as e:
-            # st.error não pode ser usado aqui, a função deve retornar dados
-            print(f"Erro ao abrir o arquivo PDF: {e}")
-            return []
+                texto_ocr = extrair_texto_com_ocr(pagina)
+                if len(texto_ocr.strip()) > 50:
+                    dados = extrair_dados_tabela(texto_ocr, 'Processado por OCR')
+                else:
+                    dados = {'Nome': f'Página {i+1} - Falha no Processamento', 'Matrícula': '-', 'Status': 'FALHA OCR/VAZIO'}
+            dados_finais.append(dados)
+        doc.close()
+    except Exception as e:
+        st.error(f"Erro na função principal de extração: {e}")
+        return []
 
-        all_reports = []
+    if not dados_finais: return []
 
-        # Processa página por página
-        for page_num in range(doc.page_count):
-            page = doc.load_page(page_num)
-            text = page.get_text("text") or ""
+    # Limpeza e Deduplicação
+    df_consolidado = pd.DataFrame(dados_finais)
+    df_final = df_consolidado[df_consolidado['Nome'].str.contains('Página') == False]
+    df_final = df_final[df_final['Nome'] != 'Não encontrado'].drop_duplicates(subset=['Matrícula'])
 
-            # CORREÇÃO 1: Check inicial mais robusto. 
-            # Normaliza o texto removendo newlines/spaces e ignora o acento para a validação.
-            normalized_header_check = text.upper().replace('\n', ' ').replace('\r', ' ').replace('  ', ' ')
-            if "CARTAO DE PONTO" not in normalized_header_check:
-                continue
+    if df_final.empty: return []
 
-            # --- 1. Extração de Dados de Cabeçalho (REGEX) ---
-            # Aceita FUNCIONARIO ou FUNCIONÁRIO, ignora espaços e usa 'CPF' como âncora final.
-            regex_nome = r"NOME DO FUNCION[AÁ]RIO:\s*(.+?)\s*CPF" 
-            regex_matricula = r"NÚMERO DE MATRÍCULA: (\d+)"
-            regex_periodo = r"DE (\d{2}\/\d{2}\/\d{4}) ATÉ (\d{2}\/\d{2}\/\d{4})"
-            # CORREÇÃO 2: A Regex de totais agora ignora **todos** os caracteres (.*?) entre os grupos para máxima flexibilidade
-            # Grupos: 1=Dias (dígito), 2=Extra 50% (formato hh:mm), 3=Extra Total (formato hh:mm)
-            # O ponto (.) casa com \n graças ao re.DOTALL.
-            regex_totais = r"TOTAIS.*?(\d+).*?([\d:]{1,5}).*?([\d:]{1,5})" 
-            regex_ausencias = r"Alterações\n(.*?)(?=POLLY SERVICOS|NOME DO FUNCIONARIO:|\Z)"
+    # Conversão e Cálculos de Resumo
+    for col in ['Dias Trabalhados', 'Folga', 'Atestado Médico', 'Falta', 'Abonar ausência']:
+        try:
+            df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0).astype(int)
+        except: pass
 
-            # Usando re.DOTALL para que o ponto (.) inclua quebras de linha em todas as buscas críticas
-            nome = re.search(regex_nome, text, re.DOTALL)
-            matricula = re.search(regex_matricula, text)
-            periodo_match = re.search(regex_periodo, text)
-            totais_match = re.search(regex_totais, text, re.DOTALL) 
-            ausencias_match = re.search(regex_ausencias, text, re.DOTALL)
+    df_final['Total de Faltas e Atestados'] = df_final['Atestado Médico'] + df_final['Falta']
+    df_final['Detalhe das Justificativas'] = (
+        'Folga: ' + df_final['Folga'].astype(str) + ', AM: ' + df_final['Atestado Médico'].astype(str) + 
+        ', Falta: ' + df_final['Falta'].astype(str) + ', Abono: ' + df_final['Abonar ausência'].astype(str)
+    )
+    
+    # Renomeação e Colunas Placeholder
+    df_final = df_final.rename(columns={
+        'Nome': 'Nome do Funcionário',
+        'Dias Trabalhados': 'Dias Trabalhados (Registrados)',
+        'Extras Total': 'Horas Extras Total',
+    })
+    
+    df_final['Período de Apuração'] = 'N/A'
+    df_final['Horas Extras 50%'] = 'N/A' 
 
-            if not nome or not matricula or not totais_match:
-                # Adicionado um print para console/logs, que pode ajudar a depurar se o erro persistir
-                print(f"Página {page_num+1}: Falha na extração. Nome: {bool(nome)}, Matrícula: {bool(matricula)}, Totais: {bool(totais_match)}.")
-                continue
+    return df_final.to_dict('records')
 
-            # Extração de TOTAIS (Grupos: 1=dias, 2=extra_50, 3=extras_total)
-            dias_trabalhados = totais_match.group(1).strip() if totais_match.group(1) else 'N/A'
-            extra_50 = totais_match.group(2).strip() if totais_match.group(2) else '00:00'
-            extras_total = totais_match.group(3).strip() if totais_match.group(3) else '00:00'
 
-            # --- 2. Processamento das Justificativas e Ausências ---
-            ausencias_texto = ausencias_match.group(1).strip() if ausencias_match else ""
-            num_atestados = ausencias_texto.lower().count("atestado médico")
-            faltas_text = re.findall(r"\d{2}\/\d{2}\/\d{4}.{1,}\nFalta", text)
-            num_faltas = len(faltas_text)
-            total_ausencias = num_faltas + num_atestados
-
-            justificativas_limpas = ausencias_texto.replace('\n', ' | ')
-            justificativas_limpas = re.sub(r"• ", "", justificativas_limpas)
-
-            # --- 3. Criação do Dicionário de Relatório ---
-            report = {
-                "Nome do Funcionário": nome.group(1).strip(),
-                "Matrícula": matricula.group(1).strip(),
-                "Período de Apuração": f"{periodo_match.group(1)} a {periodo_match.group(2)}" if periodo_match else 'N/A',
-                "Dias Trabalhados (Registrados)": dias_trabalhados,
-                "Horas Extras 50%": extra_50,
-                "Horas Extras Total": extras_total,
-                "Total de Faltas e Atestados": total_ausencias,
-                "Detalhe das Justificativas": justificativas_limpas,
-            }
-
-            all_reports.append(report)
-
-        return all_reports
-
-    @st.cache_data
-    def convert_df_to_excel_polly(df):
-        """
-        Converte o DataFrame para um arquivo Excel (.xlsx) em memória.
-        """
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Relatorio_Ponto_Polly')
-        processed_data = output.getvalue()
-        return processed_data
+def convert_df_to_excel_polly(df):
+    """ Converte o DataFrame para o formato XLSX (Excel). """
+    output = BytesIO()
+    # Usando engine='xlsxwriter' que deve ser instalado via pip install xlsxwriter
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer: 
+        df.to_excel(writer, index=False, sheet_name='Relatorio Polly')
+    processed_data = output.getvalue()
+    return processed_data
 
     # -------------------------
     # Aba Blitz
@@ -540,61 +587,71 @@ else:
         st.header("🎙️ Processamento de Cartão de Ponto (Polly)")
         st.markdown("---")
 
-        uploaded_file_polly = st.file_uploader(
-            "Anexe o arquivo de Cartão de Ponto (Formato PDF) da Polly",
-            type=["pdf"],
-            key="polly_uploader", # Chave única para o widget
-            help="Processa PDFs com até 120 páginas, extraindo dados consolidados de cada funcionário."
-        )
+if not TESSERACT_INSTALADO:
+    st.warning("⚠️ **ATENÇÃO:** O Tesseract OCR não está configurado. PDFs escaneados não serão processados corretamente.")
 
-        if uploaded_file_polly is not None:
+# O uploader precisa ser redefinido se você já o tem no seu código
+# Se você já tem 'uploaded_file_polly', APAGUE as próximas 5 linhas
+# e use sua variável existente. Se não, use este:
+uploaded_file_polly = st.file_uploader(
+    "1. Anexe o arquivo de Cartão de Ponto (Formato PDF)",
+    type=["pdf"],
+    key="polly_uploader", # Chave única
+    help="Processa PDFs com até 120 páginas, extraindo dados consolidados."
+)
+# ----------------------------------------------------------------------
 
-            pdf_bytes = uploaded_file_polly.read()
+if uploaded_file_polly is not None:
+    pdf_bytes = uploaded_file_polly.read()
+    
+    # Botão de processamento para controlar a execução
+    if st.button("2. Processar PDF e Gerar Relatório"):
+    
+        # 2. Executar a função de extração
+        # st.spinner é crucial para a experiência em arquivos grandes
+        with st.spinner("Processando PDF e extraindo dados... Este processo pode levar tempo para arquivos grandes."):
+            data_records = extract_employee_data_polly(pdf_bytes)
 
-            # 2. Executar a função de extração
-            with st.spinner("Processando PDF e extraindo dados... Este processo pode levar tempo para arquivos grandes."):
-                # Passa os bytes do PDF diretamente para a função
-                data = extract_employee_data_polly(BytesIO(pdf_bytes))
+        if data_records:
+            # 3. Criação do DataFrame e Exibição do Relatório
+            df_report = pd.DataFrame(data_records)
 
-            if data:
-                # 3. Criação do DataFrame e Exibição do Relatório
-                df_report = pd.DataFrame(data)
+            # Colunas de exibição conforme seu pedido
+            column_order = [
+                "Nome do Funcionário",
+                "Matrícula",
+                "Período de Apuração",
+                "Dias Trabalhados (Registrados)",
+                "Horas Extras Total",
+                "Horas Extras 50%",
+                "Total de Faltas e Atestados",
+                "Detalhe das Justificativas"
+            ]
 
-                # Reordenar as colunas para melhor visualização
-                column_order = [
-                    "Nome do Funcionário",
-                    "Matrícula",
-                    "Período de Apuração",
-                    "Dias Trabalhados (Registrados)",
-                    "Horas Extras Total",
-                    "Horas Extras 50%",
-                    "Total de Faltas e Atestados",
-                    "Detalhe das Justificativas"
-                ]
+            # Garante a ordem e apenas colunas existentes
+            column_order_existing = [c for c in column_order if c in df_report.columns]
+            df_final = df_report[column_order_existing] if column_order_existing else df_report
 
-                # segura caso alguma coluna não exista
-                column_order_existing = [c for c in column_order if c in df_report.columns]
-                df_final = df_report[column_order_existing] if column_order_existing else df_report
+            st.success(f"✅ Extração de dados consolidada com sucesso! {len(df_final)} registros únicos de funcionários encontrados.")
 
-                st.success("✅ Extração de dados consolidada com sucesso!")
+            # Exibição da tabela final
+            st.markdown("### Relatório de Ponto Consolidado")
+            st.dataframe(df_final, use_container_width=True)
 
-                # Exibição da tabela final 
-                st.markdown("### Relatório de Ponto Consolidado")
-                st.dataframe(df_final, use_container_width=True)
+            # 4. Opção de Download em XLSX
+            excel_data = convert_df_to_excel_polly(df_final)
 
-                # 4. Opção de Download em XLSX
-                excel_data = convert_df_to_excel_polly(df_final)
+            st.download_button(
+                label="3. Baixar Relatório Polly em XLSX",
+                data=excel_data,
+                file_name='relatorio_ponto_polly_consolidado.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            )
 
-                st.download_button(
-                    label="⬇️ Baixar Relatório Polly em XLSX",
-                    data=excel_data,
-                    file_name='relatorio_ponto_polly_consolidado.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                )
+        else:
+            st.warning("Nenhum Cartão de Ponto da Polly com o formato esperado foi encontrado no arquivo, ou houve um erro no processamento.")
+            st.info("Verifique se o PDF contém as frases 'NOME DO FUNCIONARIO' e 'TOTAIS' em um formato de texto detectável.")
 
-            else:
-                st.warning("Nenhum Cartão de Ponto da Polly com o formato esperado foi encontrado no arquivo.")
-                st.info("Verifique se o PDF contém as frases 'NOME DO FUNCIONARIO' e 'TOTAIS' em um formato de texto detectável.")
 
     # -------------------------
     # Aba D0
