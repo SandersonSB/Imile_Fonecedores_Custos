@@ -1,4 +1,4 @@
-# ========================= 
+# =========================
 # fornecedores_streamlit.py - versão estilizada
 # =========================
 
@@ -210,164 +210,164 @@ if not st.session_state.iniciado:
 else:
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🔍 D0", "Polly"])
 
- # -------------------------
+    # -------------------------
     # Aba Blitz
     # -------------------------
     with tab1:
-    # ==============================
-    # Card de upload
-    # ==============================
-    st.markdown(
-        """
-        <div class="card">
-            <h2>📂 Upload do PDF de Apontamentos</h2>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        # ==============================
+        # Card de upload
+        # ==============================
+        st.markdown(
+            """
+            <div class="card">
+                <h2>📂 Upload do PDF de Apontamentos</h2>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    uploaded_file = st.file_uploader(
-        "Selecione o arquivo PDF que evidencia o ponto dos colaboradores blitz.",
-        type=["pdf"],
-        key="blitz_uploader"
-    )
+        uploaded_file = st.file_uploader(
+            "Selecione o arquivo PDF que evidencia o ponto dos colaboradores blitz.",
+            type=["pdf"],
+            key="blitz_uploader"
+        )
 
-    if uploaded_file:
-        st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
+        if uploaded_file:
+            st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
-        lista_temas_mestra = [
-            "FALTA SEM JUSTIFICATIVA",
-            "ABONO DE HORAS",
-            "DECLARAÇÃO DE HORAS",
-            "AJUSTE DE HORAS",
-            "ATESTADO MÉDICO",
-            "FOLGA HABILITADA",
-            "SAÍDA ANTECIPADA"
-        ]
+            lista_temas_mestra = [
+                "FALTA SEM JUSTIFICATIVA",
+                "ABONO DE HORAS",
+                "DECLARAÇÃO DE HORAS",
+                "AJUSTE DE HORAS",
+                "ATESTADO MÉDICO",
+                "FOLGA HABILITADA",
+                "SAÍDA ANTECIPADA"
+            ]
 
-        dados_funcionarios = []
-        detalhes = []
+            dados_funcionarios = []
+            detalhes = []
 
-        with pdfplumber.open(uploaded_file) as pdf:
-            for i, pagina in enumerate(pdf.pages):
-                texto = pagina.extract_text() or ""
-                tabela = pagina.extract_table()
-                if not texto and not tabela:
-                    continue
-                linhas = texto.split("\n") if texto else []
+            with pdfplumber.open(uploaded_file) as pdf:
+                for i, pagina in enumerate(pdf.pages):
+                    texto = pagina.extract_text() or ""
+                    tabela = pagina.extract_table()
+                    if not texto and not tabela:
+                        continue
+                    linhas = texto.split("\n") if texto else []
 
-                funcionario = {
-                    "pagina": i + 1,
-                    "nome": None,
-                    "cpf": None,
-                    "matricula": None,
-                    "cargo": None,
-                    "centro_custo": None,
-                    "total_trabalhado": "00:00",
-                    "total_noturno": "00:00",
-                    "horas_previstas": "00:00",
-                    "faltas": 0,
-                    "horas_atraso": "00:00",
-                    "extra_50": "00:00",
-                    "desconta_dsr": 0,
-                    "status": None,
-                }
-                for tema in lista_temas_mestra:
-                    funcionario[tema] = 0
+                    funcionario = {
+                        "pagina": i + 1,
+                        "nome": None,
+                        "cpf": None,
+                        "matricula": None,
+                        "cargo": None,
+                        "centro_custo": None,
+                        "total_trabalhado": "00:00",
+                        "total_noturno": "00:00",
+                        "horas_previstas": "00:00",
+                        "faltas": 0,
+                        "horas_atraso": "00:00",
+                        "extra_50": "00:00",
+                        "desconta_dsr": 0,
+                        "status": None,
+                    }
+                    for tema in lista_temas_mestra:
+                        funcionario[tema] = 0
 
-                # =====================
-                # Cabeçalho por página
-                # =====================
-                for linha in linhas:
-                    if "NOME DO FUNCIONÁRIO:" in linha or "NOME DO FUNCIONARIO:" in linha:
-                        try:
-                            funcionario["nome"] = linha.split("NOME DO FUNCIONÁRIO:")[-1].split("CPF")[0].strip()
-                        except:
-                            funcionario["nome"] = linha.split("NOME DO FUNCIONARIO:")[-1].split("CPF")[0].strip() if "CPF" in linha else linha
-                        if "CPF" in linha:
+                    # =====================
+                    # Cabeçalho por página
+                    # =====================
+                    for linha in linhas:
+                        if "NOME DO FUNCIONÁRIO:" in linha or "NOME DO FUNCIONARIO:" in linha:
                             try:
-                                funcionario["cpf"] = linha.split("CPF DO FUNCIONÁRIO:")[-1].split("SEG")[0].strip()
+                                funcionario["nome"] = linha.split("NOME DO FUNCIONÁRIO:")[-1].split("CPF")[0].strip()
                             except:
-                                funcionario["cpf"] = ""
-                    elif "NÚMERO DE MATRÍCULA:" in linha or "NUMERO DE MATRICULA:" in linha:
-                        parts = linha.split("NÚMERO DE MATRÍCULA:")[-1] if "NÚMERO DE MATRÍCULA:" in linha else linha.split("NUMERO DE MATRICULA:")[-1]
-                        funcionario["matricula"] = parts.split("NOME DO DEPARTAMENTO")[0].strip() if "NOME DO DEPARTAMENTO" in parts else parts.strip()
-                    elif "NOME DO CARGO:" in linha:
-                        funcionario["cargo"] = linha.split("NOME DO CARGO:")[-1].split("QUI")[0].strip() if "NOME DO CARGO:" in linha else linha
-                    elif "NOME DO CENTRO DE CUSTO:" in linha:
-                        funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip() if "NOME DO CENTRO DE CUSTO:" in linha else linha
+                                funcionario["nome"] = linha.split("NOME DO FUNCIONARIO:")[-1].split("CPF")[0].strip() if "CPF" in linha else linha
+                            if "CPF" in linha:
+                                try:
+                                    funcionario["cpf"] = linha.split("CPF DO FUNCIONÁRIO:")[-1].split("SEG")[0].strip()
+                                except:
+                                    funcionario["cpf"] = ""
+                        elif "NÚMERO DE MATRÍCULA:" in linha or "NUMERO DE MATRICULA:" in linha:
+                            parts = linha.split("NÚMERO DE MATRÍCULA:")[-1] if "NÚMERO DE MATRÍCULA:" in linha else linha.split("NUMERO DE MATRICULA:")[-1]
+                            funcionario["matricula"] = parts.split("NOME DO DEPARTAMENTO")[0].strip() if "NOME DO DEPARTAMENTO" in parts else parts.strip()
+                        elif "NOME DO CARGO:" in linha:
+                            funcionario["cargo"] = linha.split("NOME DO CARGO:")[-1].split("QUI")[0].strip() if "NOME DO CARGO:" in linha else linha
+                        elif "NOME DO CENTRO DE CUSTO:" in linha:
+                            funcionario["centro_custo"] = linha.split("NOME DO CENTRO DE CUSTO:")[-1].split("DOM")[0].strip() if "NOME DO CENTRO DE CUSTO:" in linha else linha
 
-                        # Totais tabela
-                        if tabela:
-                            cabecalho = tabela[0]
-                            for linha_tabela in tabela:
-                                if linha_tabela and linha_tabela[0] and "TOTAIS" in str(linha_tabela[0]).upper():
-                                    for titulo, valor in zip(cabecalho, linha_tabela):
-                                        chave = normalizar_nome_coluna(titulo)
-                                        if chave:
-                                            if chave in ["faltas", "desconta_dsr"]:
-                                                funcionario[chave] = int(valor) if valor and str(valor).isdigit() else 0
-                                            else:
-                                                funcionario[chave] = padronizar_tempo(valor)
-                            if funcionario.get("extra_50") == funcionario.get("horas_previstas"):
-                                funcionario["extra_50"] = "00:00"
+                    # Totais tabela
+                    if tabela:
+                        cabecalho = tabela[0]
+                        for linha_tabela in tabela:
+                            if linha_tabela and linha_tabela[0] and "TOTAIS" in str(linha_tabela[0]).upper():
+                                for titulo, valor in zip(cabecalho, linha_tabela):
+                                    chave = normalizar_nome_coluna(titulo)
+                                    if chave:
+                                        if chave in ["faltas", "desconta_dsr"]:
+                                            funcionario[chave] = int(valor) if valor and str(valor).isdigit() else 0
+                                        else:
+                                            funcionario[chave] = padronizar_tempo(valor)
+                        if funcionario.get("extra_50") == funcionario.get("horas_previstas"):
+                            funcionario["extra_50"] = "00:00"
 
-                        # Alterações / justificativas
-                        encontrou_alteracoes = False
-                        for linha_texto in linhas:
-                            linha_clean = limpar_texto(linha_texto)
-                            if not encontrou_alteracoes:
-                                if "ALTERACAO" in linha_clean or "ALTERAÇÃO" in linha_clean:
-                                    encontrou_alteracoes = True
-                                    continue
-                            if "BLITZ RECURSOS HUMANOS" in linha_clean:
-                                break
-                            linha_final = re.sub(r'\d{2}/\d{2}/\d{4}', '', linha_texto)
-                            linha_final = re.sub(r'\d{1,2}:\d{2}(:\d{2})?', '', linha_final)
-                            linha_final = re.sub(r'\d+', '', linha_final).strip()
-                            if not linha_final:
+                    # Alterações / justificativas
+                    encontrou_alteracoes = False
+                    for linha_texto in linhas:
+                        linha_clean = limpar_texto(linha_texto)
+                        if not encontrou_alteracoes:
+                            if "ALTERACAO" in linha_clean or "ALTERAÇÃO" in linha_clean:
+                                encontrou_alteracoes = True
                                 continue
-                            tema_encontrado = achar_tema_mais_proximo(linha_final, lista_temas_mestra)
-                            if tema_encontrado:
-                                funcionario[tema_encontrado] += 1
+                        if "BLITZ RECURSOS HUMANOS" in linha_clean:
+                            break
+                        linha_final = re.sub(r'\d{2}/\d{2}/\d{4}', '', linha_texto)
+                        linha_final = re.sub(r'\d{1,2}:\d{2}(:\d{2})?', '', linha_final)
+                        linha_final = re.sub(r'\d+', '', linha_final).strip()
+                        if not linha_final:
+                            continue
+                        tema_encontrado = achar_tema_mais_proximo(linha_final, lista_temas_mestra)
+                        if tema_encontrado:
+                            funcionario[tema_encontrado] += 1
 
-                        # Status OK/NOK
-                        if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
-                            funcionario["status"] = "NOK"
-                        else:
-                            funcionario["status"] = "OK"
+                    # Status OK/NOK
+                    if funcionario["faltas"] > 0 or funcionario["desconta_dsr"] > 0:
+                        funcionario["status"] = "NOK"
+                    else:
+                        funcionario["status"] = "OK"
 
-                        dados_funcionarios.append(funcionario)
+                    dados_funcionarios.append(funcionario)
 
-                        # Detalhe diário
-                        if tabela:
-                            for linha_detalhe in tabela[1:]:
-                                linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
-                                if not linha_detalhe or (isinstance(linha_detalhe[0], str) and linha_detalhe[0].upper() == "TOTAIS"):
-                                    continue
-                                data_split = linha_detalhe[0].split(" - ")
-                                data = data_split[0].strip()
-                                semana = data_split[1].strip() if len(data_split) > 1 else ""
-                                registro = {
-                                    "pagina": i + 1,
-                                    "nome": funcionario["nome"],
-                                    "cpf": funcionario["cpf"],
-                                    "data": data,
-                                    "semana": semana,
-                                    "previsto": linha_detalhe[1] if len(linha_detalhe) > 1 else "",
-                                    "ent_1": linha_detalhe[2] if len(linha_detalhe) > 2 else "",
-                                    "sai_1": linha_detalhe[3] if len(linha_detalhe) > 3 else "",
-                                    "ent_2": linha_detalhe[4] if len(linha_detalhe) > 4 else "",
-                                    "sai_2": linha_detalhe[5] if len(linha_detalhe) > 5 else "",
-                                    "total_trabalhado": linha_detalhe[6] if len(linha_detalhe) > 6 else "",
-                                    "total_noturno": linha_detalhe[7] if len(linha_detalhe) > 7 else "",
-                                    "horas_previstas": linha_detalhe[8] if len(linha_detalhe) > 8 else "",
-                                    "faltas": linha_detalhe[9] if len(linha_detalhe) > 9 else "",
-                                    "horas_atraso": linha_detalhe[10] if len(linha_detalhe) > 10 else "",
-                                    "extra_50": linha_detalhe[11] if len(linha_detalhe) > 11 else "",
-                                    "desconta_dsr": linha_detalhe[12] if len(linha_detalhe) > 12 else "",
-                                }
-                                detalhes.append(registro)
+                    # Detalhe diário
+                    if tabela:
+                        for linha_detalhe in tabela[1:]:
+                            linha_detalhe = [celula for celula in linha_detalhe if celula not in [None, '']]
+                            if not linha_detalhe or (isinstance(linha_detalhe[0], str) and linha_detalhe[0].upper() == "TOTAIS"):
+                                continue
+                            data_split = linha_detalhe[0].split(" - ")
+                            data = data_split[0].strip()
+                            semana = data_split[1].strip() if len(data_split) > 1 else ""
+                            registro = {
+                                "pagina": i + 1,
+                                "nome": funcionario["nome"],
+                                "cpf": funcionario["cpf"],
+                                "data": data,
+                                "semana": semana,
+                                "previsto": linha_detalhe[1] if len(linha_detalhe) > 1 else "",
+                                "ent_1": linha_detalhe[2] if len(linha_detalhe) > 2 else "",
+                                "sai_1": linha_detalhe[3] if len(linha_detalhe) > 3 else "",
+                                "ent_2": linha_detalhe[4] if len(linha_detalhe) > 4 else "",
+                                "sai_2": linha_detalhe[5] if len(linha_detalhe) > 5 else "",
+                                "total_trabalhado": linha_detalhe[6] if len(linha_detalhe) > 6 else "",
+                                "total_noturno": linha_detalhe[7] if len(linha_detalhe) > 7 else "",
+                                "horas_previstas": linha_detalhe[8] if len(linha_detalhe) > 8 else "",
+                                "faltas": linha_detalhe[9] if len(linha_detalhe) > 9 else "",
+                                "horas_atraso": linha_detalhe[10] if len(linha_detalhe) > 10 else "",
+                                "extra_50": linha_detalhe[11] if len(linha_detalhe) > 11 else "",
+                                "desconta_dsr": linha_detalhe[12] if len(linha_detalhe) > 12 else "",
+                            }
+                            detalhes.append(registro)
 
             # =========================
             # Criação dos DataFrames
@@ -383,7 +383,56 @@ else:
             # =========================
             # Validações e regras do df_detalhe
             # =========================
-            # (mantém toda a sua lógica anterior)
+            
+            # Convertendo colunas de tempo para minutos para cálculos
+            time_cols = ["previsto", "ent_1", "sai_1", "ent_2", "sai_2", "total_trabalhado", "horas_previstas", "horas_atraso", "extra_50"]
+            for col in time_cols:
+                df_detalhe[f'{col}_min'] = df_detalhe[col].apply(hora_para_minutos)
+                
+            # Inicializa a coluna Situação
+            df_detalhe['Situação'] = None
+            df_detalhe['Motivo_Validacao'] = ""
+
+            # Condição 1: Folga / Não é dia de trabalho (se previsto é vazio ou contém FOLGA)
+            cond_previsto_folga = df_detalhe['previsto'].astype(str).str.upper().str.contains('FOLGA|DSR|-', na=False) | (df_detalhe['previsto_min'] == 0)
+            df_detalhe.loc[cond_previsto_folga, 'Situação'] = 'Folga'
+            
+            # Condição 2: Falta (Não é folga, mas o total trabalhado é 0)
+            cond_falta = (df_detalhe['Situação'].isnull()) & (df_detalhe['total_trabalhado_min'] == 0)
+            df_detalhe.loc[cond_falta, 'Situação'] = 'Falta'
+            df_detalhe.loc[cond_falta, 'Motivo_Validacao'] = 'Dia de trabalho com total trabalhado zero.'
+
+            # Condição 3: Dia Normal/OK (Trabalhou o previsto ou mais)
+            cond_ok = (df_detalhe['Situação'].isnull()) & (df_detalhe['total_trabalhado_min'] >= df_detalhe['horas_previstas_min']) & (df_detalhe['horas_previstas_min'] > 0)
+            df_detalhe.loc[cond_ok, 'Situação'] = 'OK'
+
+            # Condição 4: Horas Faltantes (Trabalhou menos que o previsto)
+            cond_horas_faltantes = (df_detalhe['Situação'].isnull()) & (df_detalhe['total_trabalhado_min'] < df_detalhe['horas_previstas_min']) & (df_detalhe['horas_previstas_min'] > 0)
+            df_detalhe.loc[cond_horas_faltantes, 'Situação'] = 'Horas Faltantes'
+            df_detalhe.loc[cond_horas_faltantes, 'Motivo_Validacao'] = (
+                'Faltam ' + 
+                (df_detalhe['horas_previstas_min'] - df_detalhe['total_trabalhado_min']).astype(int).apply(lambda x: f'{x//60:02d}:{(x%60):02d}') + 
+                ' para o previsto.'
+            )
+
+            # Condição 5: Incompleto/Ajuste Manual (Quando os campos de ponto estão vazios ou situação não identificada)
+            cond_nao_previsto = df_detalhe['Situação'].isnull()
+            df_detalhe.loc[cond_nao_previsto, 'Situação'] = 'Dia não previsto'
+            df_detalhe.loc[cond_nao_previsto, 'Motivo_Validacao'] = 'Situação não identificada pelo sistema.'
+
+            # Limpeza das colunas auxiliares de minutos
+            cols_to_drop = [f'{col}_min' for col in time_cols]
+            for col in cols_to_drop:
+                if col in df_detalhe.columns:
+                    df_detalhe.drop(columns=[col], errors='ignore', inplace=True)
+            
+            # Agrupamento das situações para o consolidado (Este passo é importante para preencher as colunas do consolidado)
+            if 'Situação' in df_detalhe.columns:
+                situacao_counts = df_detalhe.groupby('cpf')['Situação'].value_counts().unstack(fill_value=0)
+                
+                # Para cada situação, cria uma coluna no df consolidado (ex: Qtd - Falta)
+                for col in situacao_counts.columns:
+                    df_consolidado[f"Qtd - {col}"] = df_consolidado['cpf'].map(situacao_counts[col]).fillna(0).astype(int)
 
             # ===============================
             # Correção final de folgas (pós-processamento)
@@ -406,42 +455,42 @@ else:
                     nome_col = f"Qtd - {sit}"
                     df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-        # =========================
-        # Botões de Download
-        # =========================
-        st.markdown(
-            """
-            <div class="card">
-                <h3>📥 Baixar Relatórios</h3>
-                <p>Após o processamento, você pode baixar os arquivos consolidados com um clique abaixo:</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        output_consolidado = BytesIO()
-        df_consolidado.to_excel(output_consolidado, index=False)
-        output_consolidado.seek(0)
-
-        output_detalhe = BytesIO()
-        df_detalhe.to_excel(output_detalhe, index=False)
-        output_detalhe.seek(0)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.download_button(
-                label="⬇️ Baixar consolidado_blitz.xlsx",
-                data=output_consolidado,
-                file_name="consolidado_blitz.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            # =========================
+            # Botões de Download
+            # =========================
+            st.markdown(
+                """
+                <div class="card">
+                    <h3>📥 Baixar Relatórios</h3>
+                    <p>Após o processamento, você pode baixar os arquivos consolidados com um clique abaixo:</p>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-        with col2:
-            st.download_button(
-                label="⬇️ Baixar detalhe_funcionarios.xlsx",
-                data=output_detalhe,
-                file_name="detalhe_funcionarios.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+
+            output_consolidado = BytesIO()
+            df_consolidado.to_excel(output_consolidado, index=False)
+            output_consolidado.seek(0)
+
+            output_detalhe = BytesIO()
+            df_detalhe.to_excel(output_detalhe, index=False)
+            output_detalhe.seek(0)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="⬇️ Baixar consolidado_blitz.xlsx",
+                    data=output_consolidado,
+                    file_name="consolidado_blitz.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            with col2:
+                st.download_button(
+                    label="⬇️ Baixar detalhe_funcionarios.xlsx",
+                    data=output_detalhe,
+                    file_name="detalhe_funcionarios.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
 
     # -------------------------
     # Aba D0
