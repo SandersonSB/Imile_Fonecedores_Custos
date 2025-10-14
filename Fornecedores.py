@@ -383,56 +383,82 @@ else:
             # =========================
             # Validações e regras do df_detalhe
             # =========================
-            
-            # Convertendo colunas de tempo para minutos para cálculos
-            time_cols = ["previsto", "ent_1", "sai_1", "ent_2", "sai_2", "total_trabalhado", "horas_previstas", "horas_atraso", "extra_50"]
-            for col in time_cols:
-                df_detalhe[f'{col}_min'] = df_detalhe[col].apply(hora_para_minutos)
-                
-            # Inicializa a coluna Situação
-            df_detalhe['Situação'] = None
-            df_detalhe['Motivo_Validacao'] = ""
+            valores_validacao = []
+            for _, row in df_detalhe.iterrows():
+                total_minutos = (
+                    hora_para_minutos(limpa_valor(row.get("sai_1"))) - hora_para_minutos(limpa_valor(row.get("ent_1"))) +
+                    hora_para_minutos(limpa_valor(row.get("sai_2"))) - hora_para_minutos(limpa_valor(row.get("ent_2")))
+                )
+                previsto_minutos = hora_para_minutos(limpa_valor(row.get("horas_previstas")))
+                if total_minutos > previsto_minutos:
+                    status = "Carga Horaria Completa - Fez Hora Extra"
+                elif total_minutos == previsto_minutos:
+                    status = "Carga Horaria Completa"
+                else:
+                    status = "Carga Horaria Incompleta"
+                valores_validacao.append(status)
+            df_detalhe["Validação da hora trabalhada"] = valores_validacao
 
-            # Condição 1: Folga / Não é dia de trabalho (se previsto é vazio ou contém FOLGA)
-            cond_previsto_folga = df_detalhe['previsto'].astype(str).str.upper().str.contains('FOLGA|DSR|-', na=False) | (df_detalhe['previsto_min'] == 0)
-            df_detalhe.loc[cond_previsto_folga, 'Situação'] = 'Folga'
-            
-            # Condição 2: Falta (Não é folga, mas o total trabalhado é 0)
-            cond_falta = (df_detalhe['Situação'].isnull()) & (df_detalhe['total_trabalhado_min'] == 0)
-            df_detalhe.loc[cond_falta, 'Situação'] = 'Falta'
-            df_detalhe.loc[cond_falta, 'Motivo_Validacao'] = 'Dia de trabalho com total trabalhado zero.'
+            for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+                df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
 
-            # Condição 3: Dia Normal/OK (Trabalhou o previsto ou mais)
-            cond_ok = (df_detalhe['Situação'].isnull()) & (df_detalhe['total_trabalhado_min'] >= df_detalhe['horas_previstas_min']) & (df_detalhe['horas_previstas_min'] > 0)
-            df_detalhe.loc[cond_ok, 'Situação'] = 'OK'
+            def determinar_situacao(row):
+                valores = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")), limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
+                textos = [v for v in valores if v and not eh_horario(v)]
+                if textos:
+                    return textos[0].upper()
+                horarios_validos = [row.get("ent_1_valido"), row.get("sai_1_valido"), row.get("ent_2_valido"), row.get("sai_2_valido")]
+                if all(horarios_validos):
+                    return "Dia normal de trabalho"
+                if any(horarios_validos):
+                    return "Presença parcial"
+                return "Dia incompleto"
 
-            # Condição 4: Horas Faltantes (Trabalhou menos que o previsto)
-            cond_horas_faltantes = (df_detalhe['Situação'].isnull()) & (df_detalhe['total_trabalhado_min'] < df_detalhe['horas_previstas_min']) & (df_detalhe['horas_previstas_min'] > 0)
-            df_detalhe.loc[cond_horas_faltantes, 'Situação'] = 'Horas Faltantes'
-            df_detalhe.loc[cond_horas_faltantes, 'Motivo_Validacao'] = (
-                'Faltam ' + 
-                (df_detalhe['horas_previstas_min'] - df_detalhe['total_trabalhado_min']).astype(int).apply(lambda x: f'{x//60:02d}:{(x%60):02d}') + 
-                ' para o previsto.'
-            )
+            df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
+            df_detalhe.drop(columns=[c for c in ["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"] if c in df_detalhe.columns], inplace=True)
 
-            # Condição 5: Incompleto/Ajuste Manual (Quando os campos de ponto estão vazios ou situação não identificada)
-            cond_nao_previsto = df_detalhe['Situação'].isnull()
-            df_detalhe.loc[cond_nao_previsto, 'Situação'] = 'Dia não previsto'
-            df_detalhe.loc[cond_nao_previsto, 'Motivo_Validacao'] = 'Situação não identificada pelo sistema.'
+            df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
+            def reavaliar_situacao(row):
+                if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
+                    return "Dia normal de trabalho"
+                entradas_saidas = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")),
+                                   limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
+                if all(v == "" for v in entradas_saidas):
+                    return "Dia não previsto"
+                textos = [v for v in entradas_saidas if v and not eh_horario(v)]
+                if textos:
+                    return textos[0].upper()
+                return "Presença parcial"
+            if not df_incompletos.empty:
+                df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
 
-            # Limpeza das colunas auxiliares de minutos
-            cols_to_drop = [f'{col}_min' for col in time_cols]
-            for col in cols_to_drop:
-                if col in df_detalhe.columns:
-                    df_detalhe.drop(columns=[col], errors='ignore', inplace=True)
-            
-            # Agrupamento das situações para o consolidado (Este passo é importante para preencher as colunas do consolidado)
-            if 'Situação' in df_detalhe.columns:
-                situacao_counts = df_detalhe.groupby('cpf')['Situação'].value_counts().unstack(fill_value=0)
-                
-                # Para cada situação, cria uma coluna no df consolidado (ex: Qtd - Falta)
-                for col in situacao_counts.columns:
-                    df_consolidado[f"Qtd - {col}"] = df_consolidado['cpf'].map(situacao_counts[col]).fillna(0).astype(int)
+            df_detalhe.loc[df_detalhe.get("ent_1", "").astype(str).str.contains("-", na=False), "Situação"] = "Dia não previsto"
+
+            def pegar_correcao(row):
+                for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
+                    val = limpa_valor(row.get(col))
+                    if val:
+                        return val
+                return ""
+            df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
+            df_detalhe.loc[df_detalhe["Situação"].apply(lambda x: eh_horario(str(x))), "Situação"] = df_detalhe["correção"]
+
+            def regra_numero_inicio(row):
+                situacao = limpa_valor(row.get("Situação"))
+                if situacao and len(situacao) > 0 and situacao[0].isdigit():
+                    total_trab = limpa_valor(row.get("total_trabalhado"))
+                    if eh_horario(total_trab) and total_trab != "00:00":
+                        return "Dia normal de trabalho"
+                    else:
+                        previsto = limpa_valor(row.get("previsto")).upper()
+                        return previsto if previsto else "Dia não previsto"
+                return situacao
+            df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
+
+            situacoes_unicas = df_detalhe["Situação"].unique()
+            for sit in situacoes_unicas:
+                nome_col = f"Qtd - {sit}"
+                df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
 
 
