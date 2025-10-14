@@ -434,26 +434,7 @@ else:
                 for col in situacao_counts.columns:
                     df_consolidado[f"Qtd - {col}"] = df_consolidado['cpf'].map(situacao_counts[col]).fillna(0).astype(int)
 
-            # ===============================
-            # Correção final de folgas (pós-processamento)
-            # ===============================
-            if "previsto" in df_detalhe.columns and "Situação" in df_detalhe.columns:
-                df_detalhe["previsto_limpo"] = df_detalhe["previsto"].astype(str).str.upper().str.strip()
 
-                cond_folga = (
-                    df_detalhe["previsto_limpo"].str.contains("FOLGA", na=False)
-                    | df_detalhe["previsto_limpo"].isin(["-", "FOLGA HABILITADA", "FOLGA"])
-                )
-                cond_situacao_incorreta = df_detalhe["Situação"].isin(["Dia não previsto", "", None])
-
-                df_detalhe.loc[cond_folga & cond_situacao_incorreta, "Situação"] = "Folga"
-                df_detalhe.drop(columns=["previsto_limpo"], inplace=True)
-
-                # Atualiza as contagens após a correção
-                situacoes_unicas = df_detalhe["Situação"].unique()
-                for sit in situacoes_unicas:
-                    nome_col = f"Qtd - {sit}"
-                    df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
             # =========================
             # Botões de Download
