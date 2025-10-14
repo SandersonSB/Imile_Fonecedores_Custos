@@ -222,13 +222,13 @@ else:
             """
             <div class="card">
                 <h2>📂 Upload do PDF de Apontamentos</h2>
-                <p>Selecione o arquivo PDF com os apontamentos dos colaboradores para iniciar a análise.</p>
+
             </div>
             """, 
             unsafe_allow_html=True
         )
         
-        uploaded_file = st.file_uploader(type=["pdf"], key="blitz_uploader")
+        uploaded_file = st.file_uploader("Selecione o arquivo PDF que evidencia o ponto dos colaboradores blitz.",type=["pdf"], key="blitz_uploader")
         
         if uploaded_file:
             st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
