@@ -202,7 +202,7 @@ if not st.session_state.iniciado:
     with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
-            st.experimental_rerun()
+            st.rerun() # CORREÇÃO APLICADA AQUI!
 
 # =========================
 # Resto do app após iniciar
