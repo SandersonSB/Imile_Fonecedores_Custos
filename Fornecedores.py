@@ -457,42 +457,42 @@ else:
                         nome_col = f"Qtd - {sit}"
                         df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
         
-    # =========================
-    # Botões de Download
-    # =========================
-    st.markdown(
-        """
-        <div class="card">
-            <h3>📥 Baixar Relatórios</h3>
-            <p>Após o processamento, você pode baixar os arquivos consolidados com um clique abaixo:</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    output_consolidado = BytesIO()
-    df_consolidado.to_excel(output_consolidado, index=False)
-    output_consolidado.seek(0)
-
-    output_detalhe = BytesIO()
-    df_detalhe.to_excel(output_detalhe, index=False)
-    output_detalhe.seek(0)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.download_button(
-            label="⬇️ Baixar consolidado_blitz.xlsx",
-            data=output_consolidado,
-            file_name="consolidado_blitz.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    with col2:
-        st.download_button(
-            label="⬇️ Baixar detalhe_funcionarios.xlsx",
-            data=output_detalhe,
-            file_name="detalhe_funcionarios.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            # =========================
+            # Botões de Download
+            # =========================
+            st.markdown(
+                """
+                <div class="card">
+                    <h3>📥 Baixar Relatórios</h3>
+                    <p>Após o processamento, você pode baixar os arquivos consolidados com um clique abaixo:</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+            output_consolidado = BytesIO()
+            df_consolidado.to_excel(output_consolidado, index=False)
+            output_consolidado.seek(0)
+        
+            output_detalhe = BytesIO()
+            df_detalhe.to_excel(output_detalhe, index=False)
+            output_detalhe.seek(0)
+        
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="⬇️ Baixar consolidado_blitz.xlsx",
+                    data=output_consolidado,
+                    file_name="consolidado_blitz.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            with col2:
+                st.download_button(
+                    label="⬇️ Baixar detalhe_funcionarios.xlsx",
+                    data=output_detalhe,
+                    file_name="detalhe_funcionarios.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
     
     # -------------------------
     # Aba D0
