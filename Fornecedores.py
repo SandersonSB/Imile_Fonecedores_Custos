@@ -228,7 +228,7 @@ else:
             unsafe_allow_html=True
         )
         
-        uploaded_file = st.file_uploader("📂 Escolha o arquivo PDF", type=["pdf"], key="blitz_uploader")
+        uploaded_file = st.file_uploader(type=["pdf"], key="blitz_uploader")
         
         if uploaded_file:
             st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
