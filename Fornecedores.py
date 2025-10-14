@@ -214,17 +214,6 @@ else:
     # Aba Blitz
     # -------------------------
     with tab1:
-       
-        # ==============================
-        # Cabeçalho elegante
-        # ==============================
-        st.markdown("""
-        <div class="header">
-            <h1>📊 Blitz de Apontamentos</h1>
-            <p>Envie o PDF de apontamentos e gere relatórios automáticos de validação e correção.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
         # ==============================
         # Card de upload
         # ==============================
