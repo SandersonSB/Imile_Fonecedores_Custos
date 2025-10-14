@@ -228,6 +228,7 @@ else:
         # ==============================
         # Card de upload
         # ==============================
+        # Upload dentro do card HTML (tudo agrupado)
         st.markdown(
             """
             <div class="card">
@@ -238,11 +239,7 @@ else:
             unsafe_allow_html=True
         )
         
-        # ==============================
-        # Upload do arquivo PDF
-        # ==============================
-        st.header("📂 Upload do PDF de Apontamentos")
-        uploaded_file = st.file_uploader("Escolha o arquivo PDF", type=["pdf"], key="blitz_uploader")
+        uploaded_file = st.file_uploader("📂 Escolha o arquivo PDF", type=["pdf"], key="blitz_uploader")
         
         if uploaded_file:
             st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
