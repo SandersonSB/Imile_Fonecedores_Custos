@@ -503,7 +503,7 @@ else:
     # Aba D0
     # -------------------------
     with tab2:
-        st.markdown('<div class="card"><h2>🔍 Aba D0</h2><p>Em construção – espaço reservado para funcionalidades relacionadas ao D0.</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><h2>🔍 Aba D0</h2><p>Acesse o notebook do Google Colab clicando no link abaixo:</p><p><a href="https://colab.research.google.com/drive/1dos61MV-4zddHegz8n9tZv4yv-3wLqPq?usp=drive_link" target="_blank">Abrir notebook Colab</a></p></div>', unsafe_allow_html=True)
     
     # -------------------------
     # Aba Polly
