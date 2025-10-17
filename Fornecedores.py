@@ -227,7 +227,7 @@ else:
 # =========================
 # Resto do app após iniciar
 # =========================
-else:
+
     # Nomes das abas com ícones
     tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🔍 D0", "🔗 Polly"])
 
