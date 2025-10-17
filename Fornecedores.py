@@ -241,7 +241,25 @@ if not st.session_state.iniciado:
     </p>
 </div>
 ''', unsafe_allow_html=True)
+# ==============================
+# SIDEBAR (ABA LATERAL DE CONFIGURAÇÕES)
+# ==============================
+st.sidebar.title("⚙️ Configurações")
+st.sidebar.markdown("""
+Esta seção permite ajustar regras de pagamento e preferências de análise.
+""")
 
+tipo_relatorio = st.sidebar.selectbox(
+    "Tipo de Relatório",
+    ["Consolidado", "Detalhado", "Ambos"]
+)
+
+modo_validacao = st.sidebar.radio(
+    "Modo de Validação",
+    ["Automático", "Manual"]
+)
+
+st.sidebar.button("💾 Salvar Configurações")
     
     # Colunas para centralizar o botão
     col1, col2, col3 = st.columns([4.5,2,3.5])
