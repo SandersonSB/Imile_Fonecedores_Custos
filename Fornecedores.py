@@ -105,6 +105,12 @@ import streamlit as st
 st.set_page_config(page_title="Assistente de Custos", layout="wide")
 
 # =========================
+# Configuração inicial e CSS elegante
+# =========================
+import streamlit as st
+st.set_page_config(page_title="Assistente de Custos", layout="wide")
+
+# =========================
 # CSS Customizado
 # =========================
 st.markdown("""
@@ -132,17 +138,27 @@ st.markdown("""
     color: #f9f9f9;
 }
 
-/* Card */
+/* Container centralizado (tela inicial) */
+.start-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 75vh;
+    text-align: center;
+}
+
+/* Card central */
 .card {
     background-color: #f2f6fc;
-    padding: 20px;
-    border-radius: 10px;
+    padding: 25px 40px;
+    border-radius: 12px;
     margin: 20px 0;
     box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #004080;
     border: 2px solid #004080;
-    text-align: center;
+    max-width: 700px;
 }
 
 /* Botão estilizado */
@@ -150,7 +166,7 @@ st.markdown("""
     background-color: #004080;
     color: white;
     border: none;
-    padding: 0.9em 2.5em;
+    padding: 0.9em 2.8em;
     border-radius: 10px;
     font-size: 1.1em;
     font-weight: 600;
@@ -162,23 +178,6 @@ st.markdown("""
     background-color: #FFC107;
     color: #004080;
     transform: scale(1.05);
-}
-
-/* Footer */
-.footer {
-    background: linear-gradient(90deg, #004080, #FFC107);
-    padding: 15px;
-    border-radius: 10px;
-    color: white;
-    text-align: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    border: 2px solid white;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
-    margin-top: 40px;
-}
-.footer p {
-    margin: 0;
-    font-size: 16px;
 }
 
 /* Tabs */
@@ -197,6 +196,23 @@ st.markdown("""
 .stTabs [role="tab"][aria-selected="true"] button {
     background-color: #004080;
     color: white;
+}
+
+/* Footer */
+.footer {
+    background: linear-gradient(90deg, #004080, #FFC107);
+    padding: 15px;
+    border-radius: 10px;
+    color: white;
+    text-align: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border: 2px solid white;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    margin-top: 40px;
+}
+.footer p {
+    margin: 0;
+    font-size: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -218,18 +234,14 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    # Cria um espaço central na página
-    placeholder = st.empty()
-    with placeholder.container():
-        st.markdown("## ")
-        st.markdown("## ")
-        st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
-        st.write("")
-        col1, col2, col3 = st.columns([3,2,3])
-        with col2:
-            if st.button("Iniciar 🚀"):
-                st.session_state.iniciado = True
-                st.rerun()
+    st.markdown('<div class="start-container">', unsafe_allow_html=True)
+    st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
+    st.write("")  # Espaçamento
+    if st.button("Iniciar 🚀"):
+        st.session_state.iniciado = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 
