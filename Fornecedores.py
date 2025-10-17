@@ -101,7 +101,6 @@ def eh_horario(valor):
 # =========================
 # Configuração inicial e CSS elegante
 # =========================
-import streamlit as st
 st.set_page_config(page_title="Assistente de Custos", layout="wide")
 
 # =========================
@@ -132,37 +131,16 @@ st.markdown("""
     color: #f9f9f9;
 }
 
-/* Card */
+/* Cards */
 .card {
     background-color: #f2f6fc;
-    padding: 25px 40px;
-    border-radius: 12px;
+    padding: 20px;
+    border-radius: 10px;
     margin: 20px 0;
     box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #004080;
     border: 2px solid #004080;
-    max-width: 700px;
-    text-align: center;
-}
-
-/* Botão estilizado */
-.stButton>button {
-    background-color: #004080;
-    color: white;
-    border: none;
-    padding: 0.9em 2.8em;
-    border-radius: 10px;
-    font-size: 1.1em;
-    font-weight: 600;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-.stButton>button:hover {
-    background-color: #FFC107;
-    color: #004080;
-    transform: scale(1.05);
 }
 
 /* Footer */
@@ -180,6 +158,24 @@ st.markdown("""
 .footer p {
     margin: 0;
     font-size: 16px;
+}
+
+/* Tabs */
+.stTabs [role="tab"] button {
+    background-color: #f2f6fc;
+    color: #004080;
+    font-weight: bold;
+    border-radius: 10px 10px 0 0;
+    padding: 10px 20px;
+    margin-right: 5px;
+    border: 2px solid #004080;
+}
+.stTabs [role="tab"]:hover button {
+    background-color: #e6f0ff;
+}
+.stTabs [role="tab"][aria-selected="true"] button {
+    background-color: #004080;
+    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -201,27 +197,12 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    # Espaço superior para centralizar visualmente
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.markdown(
-        '<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>',
-        unsafe_allow_html=True
-    )
-    st.write("")
-    st.write("")
-    # Centraliza horizontalmente o botão
+    st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([3,2,3])
     with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
-            st.rerun()
+            st.rerun() # CORREÇÃO APLICADA AQUI!
 
 # =========================
 # Resto do app após iniciar
