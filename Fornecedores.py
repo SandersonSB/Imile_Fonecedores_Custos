@@ -232,7 +232,16 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    st.markdown('<div class="card"><p>Esta ferramenta ajuda a validar e conferir os pagamentos fixos dos colaboradores dos fornecedores envolvidos no nosso processo logístico. Aplicando regras de pagamento automaticamente e organizando as informações para análise, ela permite decisões mais rápidas e precisas, oferecendo foco, controle e confiabilidade. Mais eficiência e menos erros em um só lugar!</p></div>', unsafe_allow_html=True)
+    st.markdown('''
+<div class="card" style="text-align: center;">
+    <p>
+        Esta ferramenta ajuda a validar e conferir os pagamentos fixos dos colaboradores dos fornecedores envolvidos no nosso processo logístico. 
+        Aplicando regras de pagamento automaticamente e organizando as informações para análise, ela permite decisões mais rápidas e precisas, 
+        oferecendo foco, controle e confiabilidade. Mais eficiência e menos erros em um só lugar!
+    </p>
+</div>
+''', unsafe_allow_html=True)
+
     
     # Colunas para centralizar o botão
     col1, col2, col3 = st.columns([4.5,2,3.5])
