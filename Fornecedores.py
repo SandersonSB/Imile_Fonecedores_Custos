@@ -105,12 +105,6 @@ import streamlit as st
 st.set_page_config(page_title="Assistente de Custos", layout="wide")
 
 # =========================
-# Configuração inicial e CSS elegante
-# =========================
-import streamlit as st
-st.set_page_config(page_title="Assistente de Custos", layout="wide")
-
-# =========================
 # CSS Customizado
 # =========================
 st.markdown("""
@@ -138,17 +132,7 @@ st.markdown("""
     color: #f9f9f9;
 }
 
-/* Container centralizado (tela inicial) */
-.start-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 75vh;
-    text-align: center;
-}
-
-/* Card central */
+/* Card */
 .card {
     background-color: #f2f6fc;
     padding: 25px 40px;
@@ -159,6 +143,7 @@ st.markdown("""
     color: #004080;
     border: 2px solid #004080;
     max-width: 700px;
+    text-align: center;
 }
 
 /* Botão estilizado */
@@ -178,24 +163,6 @@ st.markdown("""
     background-color: #FFC107;
     color: #004080;
     transform: scale(1.05);
-}
-
-/* Tabs */
-.stTabs [role="tab"] button {
-    background-color: #f2f6fc;
-    color: #004080;
-    font-weight: bold;
-    border-radius: 10px 10px 0 0;
-    padding: 10px 20px;
-    margin-right: 5px;
-    border: 2px solid #004080;
-}
-.stTabs [role="tab"]:hover button {
-    background-color: #e6f0ff;
-}
-.stTabs [role="tab"][aria-selected="true"] button {
-    background-color: #004080;
-    color: white;
 }
 
 /* Footer */
@@ -234,16 +201,27 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    st.markdown('<div class="start-container">', unsafe_allow_html=True)
-    st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
-    st.write("")  # Espaçamento
-    if st.button("Iniciar 🚀"):
-        st.session_state.iniciado = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-
+    # Espaço superior para centralizar visualmente
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.markdown(
+        '<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>',
+        unsafe_allow_html=True
+    )
+    st.write("")
+    st.write("")
+    # Centraliza horizontalmente o botão
+    col1, col2, col3 = st.columns([3,2,3])
+    with col2:
+        if st.button("Iniciar 🚀"):
+            st.session_state.iniciado = True
+            st.rerun()
 
 # =========================
 # Resto do app após iniciar
