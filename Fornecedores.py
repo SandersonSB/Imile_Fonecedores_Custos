@@ -215,7 +215,7 @@ if not st.session_state.iniciado:
     ''', unsafe_allow_html=True)
 
     # Centralizar o botão
-    col1, col2, col3 = st.columns([4.5, 2, 3.5])
+    col1, col2, col3 = st.columns([4.5, 2, 3.0])
     with col2:
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
