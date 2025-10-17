@@ -173,7 +173,7 @@ section[data-testid="stSidebar"] * {
 st.markdown("""
 <div class="header">
     <h1><i class="fa fa-truck">📦</i> Assistente de Custos IMILE</h1>
-    <p>Dashboard de Controle de Apontamentos de Funcionários</p>
+    <p>Transformando PDFs de controle de ponto em decisões rápidas e confiáveis. Mais eficiência, menos erros e total controle sobre a jornada dos colaboradores</p>
 </div>
 """, unsafe_allow_html=True)
 
