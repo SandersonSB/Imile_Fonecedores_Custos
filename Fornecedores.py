@@ -534,10 +534,30 @@ else:
         st.markdown('<div class="card"><h2>🔗 Aba Polly</h2><p>Acesse o notebook do Google Colab clicando no link abaixo:</p><p><a href="https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#" target="_blank">Abrir notebook Colab</a></p></div>', unsafe_allow_html=True)
 
 # =========================
-# Footer elegante
+# Footer elegante e estilizado
 # =========================
 st.markdown("""
+<style>
+.footer {
+    background: linear-gradient(90deg, #004080, #0077b6);
+    padding: 15px;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border: 3px solid #FFC107;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    margin-top: 30px;
+    font-size: 16px;
+    font-weight: 500;
+}
+.footer i {
+    color: #FFC107;
+    margin-right: 8px;
+}
+</style>
+
 <div class="footer">
-    <p>© 2025 Assistente de Custos - IMILE | Todos os direitos reservados</p>
+    <i class="fa fa-truck">📦</i> © 2025 Assistente de Custos - IMILE | Todos os direitos reservados
 </div>
 """, unsafe_allow_html=True)
