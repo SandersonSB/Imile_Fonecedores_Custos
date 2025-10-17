@@ -105,7 +105,7 @@ import streamlit as st
 st.set_page_config(page_title="Assistente de Custos", layout="wide")
 
 # =========================
-# CSS Customizado (com centralização e botão aprimorado)
+# CSS Customizado
 # =========================
 st.markdown("""
 <style>
@@ -132,7 +132,7 @@ st.markdown("""
     color: #f9f9f9;
 }
 
-/* Cards */
+/* Card */
 .card {
     background-color: #f2f6fc;
     padding: 20px;
@@ -143,15 +143,6 @@ st.markdown("""
     color: #004080;
     border: 2px solid #004080;
     text-align: center;
-}
-
-/* Container centralizado */
-.center-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 70vh;
 }
 
 /* Botão estilizado */
@@ -227,12 +218,19 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    st.markdown('<div class="center-container">', unsafe_allow_html=True)
-    st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
-    if st.button("Iniciar 🚀"):
-        st.session_state.iniciado = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Cria um espaço central na página
+    placeholder = st.empty()
+    with placeholder.container():
+        st.markdown("## ")
+        st.markdown("## ")
+        st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
+        st.write("")
+        col1, col2, col3 = st.columns([3,2,3])
+        with col2:
+            if st.button("Iniciar 🚀"):
+                st.session_state.iniciado = True
+                st.rerun()
+
 
 
 # =========================
