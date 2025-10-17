@@ -224,7 +224,6 @@ if not st.session_state.iniciado:
 else:
     st.success("✅ Aplicação iniciada com sucesso!")
 
-
 # =========================
 # Resto do app após iniciar
 # =========================
