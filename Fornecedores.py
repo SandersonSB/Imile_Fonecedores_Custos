@@ -1,5 +1,5 @@
 # =========================
-# fornecedores_streamlit.py - versão estilizada
+# fornecedores_streamlit.py - versão estilizada (LÓGICA 100% ORIGINAL)
 # =========================
 
 import streamlit as st
@@ -101,28 +101,36 @@ def eh_horario(valor):
 # =========================
 # Configuração inicial e CSS elegante
 # =========================
-st.set_page_config(page_title="Assistente de Custos", layout="wide")
+# st.set_page_config com nome personalizado para IMILE
+st.set_page_config(page_title="Assistente de Custos IMILE", layout="wide")
 
 # =========================
-# CSS Customizado
+# CSS Customizado - ESTÉTICA APLICADA AQUI
 # =========================
 st.markdown("""
 <style>
 /* Header */
 .header {
-    background: linear-gradient(90deg, #004080, #FFC107);
+    /* Novo background com cores IMILE e degrade */
+    background: linear-gradient(90deg, #004080, #0077b6); 
     padding: 25px;
-    border-radius: 10px;
+    border-radius: 12px; 
     color: white;
     text-align: center;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    border: 3px solid white;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    /* Borda de destaque */
+    border: 4px solid #FFC107; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    margin-bottom: 30px;
 }
 .header h1 {
     margin: 0;
     font-size: 44px;
     font-weight: bold;
+}
+.header h1 i {
+    color: #FFC107; /* Cor do ícone (logo) */
+    margin-right: 10px;
 }
 .header p {
     margin: 5px 0 0 0;
@@ -131,19 +139,57 @@ st.markdown("""
     color: #f9f9f9;
 }
 
-/* Cards */
+/* Cards com bordas e sombra */
 .card {
-    background-color: #f2f6fc;
+    background-color: #f8f9fa; 
     padding: 20px;
     border-radius: 10px;
     margin: 20px 0;
-    box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #004080;
-    border: 2px solid #004080;
+    border-left: 5px solid #0077b6; /* Linha de destaque lateral */
 }
 
-/* Footer */
+/* Estilo e Centralização do botão INICIAR */
+/* O seletor abaixo estiliza o botão */
+div.stButton > button {
+    background-color: #0077b6; 
+    color: white;
+    padding: 15px 30px;
+    border-radius: 10px;
+    border: none;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px #005691;
+    transition: all 0.2s;
+    width: 100%; /* Ocupa o espaço da coluna para centralização */
+}
+div.stButton > button:hover {
+    background-color: #005691;
+    box-shadow: 0 3px #004080;
+    transform: translateY(2px);
+}
+
+/* Tabs */
+.stTabs [role="tab"] button {
+    background-color: #f0f2f6;
+    color: #004080;
+    font-weight: 600;
+    border-radius: 10px 10px 0 0;
+    padding: 12px 25px;
+    margin-right: 5px;
+    border: 1px solid #ced4da;
+}
+.stTabs [role="tab"][aria-selected="true"] button {
+    background-color: #004080;
+    color: white;
+    border-color: #004080;
+    border-bottom: 3px solid #FFC107; 
+}
+
+/* Footer elegante */
 .footer {
     background: linear-gradient(90deg, #004080, #FFC107);
     padding: 15px;
@@ -155,37 +201,26 @@ st.markdown("""
     box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
     margin-top: 40px;
 }
-.footer p {
-    margin: 0;
-    font-size: 16px;
+
+/* Estilo para links nas abas (CoLab) */
+.card a {
+    color: #FFC107 !important;
+    text-decoration: none;
+    font-weight: bold;
+}
+.card a:hover {
+    text-decoration: underline;
 }
 
-/* Tabs */
-.stTabs [role="tab"] button {
-    background-color: #f2f6fc;
-    color: #004080;
-    font-weight: bold;
-    border-radius: 10px 10px 0 0;
-    padding: 10px 20px;
-    margin-right: 5px;
-    border: 2px solid #004080;
-}
-.stTabs [role="tab"]:hover button {
-    background-color: #e6f0ff;
-}
-.stTabs [role="tab"][aria-selected="true"] button {
-    background-color: #004080;
-    color: white;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# Header elegante
+# Header elegante com Logo IMILE e ícones
 # =========================
 st.markdown("""
 <div class="header">
-    <h1>Assistente de Custos</h1>
+    <h1><i class="fa fa-truck">📦</i> Assistente de Custos IMILE</h1>
     <p>Dashboard de Controle de Apontamentos de Funcionários</p>
 </div>
 """, unsafe_allow_html=True)
@@ -198,17 +233,21 @@ if "iniciado" not in st.session_state:
 
 if not st.session_state.iniciado:
     st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
+    
+    # Colunas para centralizar o botão
     col1, col2, col3 = st.columns([3,2,3])
     with col2:
+        # LÓGICA 100% ORIGINAL AQUI
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
-            st.rerun() # CORREÇÃO APLICADA AQUI!
+            st.rerun() # LINHA ORIGINAL MANTIDA!
 
 # =========================
 # Resto do app após iniciar
 # =========================
 else:
-    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🔍 D0", "Polly"])
+    # Nomes das abas com ícones
+    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🔍 D0", "🔗 Polly"])
 
     # -------------------------
     # Aba Blitz
@@ -226,6 +265,7 @@ else:
             unsafe_allow_html=True
         )
 
+        # LÓGICA 100% ORIGINAL AQUI
         uploaded_file = st.file_uploader(
             "Selecione o arquivo PDF que evidencia o ponto dos colaboradores blitz.",
             type=["pdf"],
@@ -500,13 +540,13 @@ else:
                 )
 
     # -------------------------
-    # Aba D0
+    # Aba D0 (LÓGICA 100% ORIGINAL)
     # -------------------------
     with tab2:
         st.markdown('<div class="card"><h2>🔍 Aba D0</h2><p>Acesse o notebook do Google Colab clicando no link abaixo:</p><p><a href="https://colab.research.google.com/drive/1dos61MV-4zddHegz8n9tZv4yv-3wLqPq?usp=drive_link" target="_blank">Abrir notebook Colab</a></p></div>', unsafe_allow_html=True)
     
     # -------------------------
-    # Aba Polly
+    # Aba Polly (LÓGICA 100% ORIGINAL)
     # -------------------------
     with tab3:
         st.markdown('<div class="card"><h2>🔗 Aba Polly</h2><p>Acesse o notebook do Google Colab clicando no link abaixo:</p><p><a href="https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#" target="_blank">Abrir notebook Colab</a></p></div>', unsafe_allow_html=True)
