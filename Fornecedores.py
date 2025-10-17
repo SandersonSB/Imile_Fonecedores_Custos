@@ -101,10 +101,11 @@ def eh_horario(valor):
 # =========================
 # Configuração inicial e CSS elegante
 # =========================
+import streamlit as st
 st.set_page_config(page_title="Assistente de Custos", layout="wide")
 
 # =========================
-# CSS Customizado
+# CSS Customizado (com centralização e botão aprimorado)
 # =========================
 st.markdown("""
 <style>
@@ -141,6 +142,35 @@ st.markdown("""
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #004080;
     border: 2px solid #004080;
+    text-align: center;
+}
+
+/* Container centralizado */
+.center-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
+}
+
+/* Botão estilizado */
+.stButton>button {
+    background-color: #004080;
+    color: white;
+    border: none;
+    padding: 0.9em 2.5em;
+    border-radius: 10px;
+    font-size: 1.1em;
+    font-weight: 600;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.stButton>button:hover {
+    background-color: #FFC107;
+    color: #004080;
+    transform: scale(1.05);
 }
 
 /* Footer */
@@ -197,12 +227,13 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
+    st.markdown('<div class="center-container">', unsafe_allow_html=True)
     st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([3,2,3])
-    with col2:
-        if st.button("Iniciar 🚀"):
-            st.session_state.iniciado = True
-            st.rerun() # CORREÇÃO APLICADA AQUI!
+    if st.button("Iniciar 🚀"):
+        st.session_state.iniciado = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
 
 # =========================
 # Resto do app após iniciar
