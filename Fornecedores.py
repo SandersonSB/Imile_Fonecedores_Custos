@@ -235,7 +235,7 @@ if not st.session_state.iniciado:
     st.markdown('<div class="card"><p>Este aplicativo processa apontamentos de funcionários em PDF, aplica regras de validação de horários e situações, e gera relatórios finais prontos para análise.</p></div>', unsafe_allow_html=True)
     
     # Colunas para centralizar o botão
-    col1, col2, col3 = st.columns([3,2,3])
+    col1, col2, col3 = st.columns([4,2,4])
     with col2:
         # LÓGICA 100% ORIGINAL AQUI
         if st.button("Iniciar 🚀"):
