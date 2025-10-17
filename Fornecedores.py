@@ -12,9 +12,8 @@ import numpy as np
 import fitz  # Biblioteca para processar PDFs escaneados (PyMuPDF)
 
 # =========================
-# Funções auxiliares
+# Funções auxiliares (mantidas)
 # =========================
-# (Mantidas exatamente como estavam)
 def normalizar_nome_coluna(nome):
     if not nome:
         return None
@@ -101,60 +100,45 @@ def eh_horario(valor):
 # =========================
 # Configuração inicial e CSS elegante
 # =========================
-# st.set_page_config com nome personalizado para IMILE
 st.set_page_config(page_title="Assistente de Custos IMILE", layout="wide")
 
 # =========================
-# CSS Customizado - ESTÉTICA APLICADA AQUI
+# CSS Customizado
 # =========================
 st.markdown("""
 <style>
 /* Header */
 .header {
-    /* Novo background com cores IMILE e degrade */
-    background: linear-gradient(90deg, #004080, #0077b6); 
+    background: linear-gradient(90deg, #004080, #0077b6);
     padding: 25px;
-    border-radius: 12px; 
+    border-radius: 12px;
     color: white;
     text-align: center;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Borda de destaque */
-    border: 4px solid #FFC107; 
+    border: 4px solid #FFC107;
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     margin-bottom: 30px;
 }
-.header h1 {
-    margin: 0;
-    font-size: 44px;
-    font-weight: bold;
-}
-.header h1 i {
-    color: #FFC107; /* Cor do ícone (logo) */
-    margin-right: 10px;
-}
-.header p {
-    margin: 5px 0 0 0;
-    font-size: 20px;
-    font-weight: 500;
-    color: #f9f9f9;
-}
+.header h1 { margin: 0; font-size: 44px; font-weight: bold; }
+.header h1 i { color: #FFC107; margin-right: 10px; }
+.header p { margin: 5px 0 0 0; font-size: 20px; font-weight: 500; color: #f9f9f9; }
 
-/* Cards com bordas e sombra */
+/* Cards */
 .card {
-    background-color: #f8f9fa; 
+    background-color: #f8f9fa;
     padding: 20px;
     border-radius: 10px;
     margin: 20px 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #004080;
-    border-left: 5px solid #0077b6; /* Linha de destaque lateral */
+    border-left: 5px solid #0077b6;
+    text-align: center;
 }
 
-/* Estilo e Centralização do botão INICIAR */
-/* O seletor abaixo estiliza o botão */
+/* Botão Iniciar */
 div.stButton > button {
-    background-color: #0077b6; 
+    background-color: #0077b6;
     color: white;
     padding: 15px 30px;
     border-radius: 10px;
@@ -164,7 +148,7 @@ div.stButton > button {
     cursor: pointer;
     box-shadow: 0 5px #005691;
     transition: all 0.2s;
-    width: 100%; /* Ocupa o espaço da coluna para centralização */
+    width: 100%;
 }
 div.stButton > button:hover {
     background-color: #005691;
@@ -172,51 +156,19 @@ div.stButton > button:hover {
     transform: translateY(2px);
 }
 
-/* Tabs */
-.stTabs [role="tab"] button {
-    background-color: #f0f2f6;
-    color: #004080;
-    font-weight: 600;
-    border-radius: 10px 10px 0 0;
-    padding: 12px 25px;
-    margin-right: 5px;
-    border: 1px solid #ced4da;
-}
-.stTabs [role="tab"][aria-selected="true"] button {
-    background-color: #004080;
+/* Sidebar estilizada */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #004080, #005691);
     color: white;
-    border-color: #004080;
-    border-bottom: 3px solid #FFC107; 
 }
-
-/* Footer elegante */
-.footer {
-    background: linear-gradient(90deg, #004080, #FFC107);
-    padding: 15px;
-    border-radius: 10px;
-    color: white;
-    text-align: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    border: 2px solid white;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
-    margin-top: 40px;
+section[data-testid="stSidebar"] * {
+    color: white !important;
 }
-
-/* Estilo para links nas abas (CoLab) */
-.card a {
-    color: #FFC107 !important;
-    text-decoration: none;
-    font-weight: bold;
-}
-.card a:hover {
-    text-decoration: underline;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# Header elegante com Logo IMILE e ícones
+# Header elegante
 # =========================
 st.markdown("""
 <div class="header">
@@ -226,24 +178,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================
-# Controle de início
-# =========================
-if "iniciado" not in st.session_state:
-    st.session_state.iniciado = False
-
-if not st.session_state.iniciado:
-    st.markdown('''
-<div class="card" style="text-align: center;">
-    <p>
-        Esta ferramenta ajuda a validar e conferir os pagamentos fixos dos colaboradores dos fornecedores envolvidos no nosso processo logístico. 
-        Aplicando regras de pagamento automaticamente e organizando as informações para análise, ela permite decisões mais rápidas e precisas, 
-        oferecendo foco, controle e confiabilidade. Mais eficiência e menos erros em um só lugar!
-    </p>
-</div>
-''', unsafe_allow_html=True)
-# ==============================
 # SIDEBAR (ABA LATERAL DE CONFIGURAÇÕES)
-# ==============================
+# =========================
 st.sidebar.title("⚙️ Configurações")
 st.sidebar.markdown("""
 Esta seção permite ajustar regras de pagamento e preferências de análise.
@@ -260,14 +196,34 @@ modo_validacao = st.sidebar.radio(
 )
 
 st.sidebar.button("💾 Salvar Configurações")
-    
-    # Colunas para centralizar o botão
-    col1, col2, col3 = st.columns([4.5,2,3.5])
+
+# =========================
+# Tela Inicial (antes de iniciar)
+# =========================
+if "iniciado" not in st.session_state:
+    st.session_state.iniciado = False
+
+if not st.session_state.iniciado:
+    st.markdown('''
+    <div class="card">
+        <p>Esta ferramenta ajuda a validar e conferir os pagamentos fixos dos colaboradores dos fornecedores envolvidos no nosso processo logístico. 
+        Aplicando regras de pagamento automaticamente e organizando as informações para análise, ela permite decisões mais rápidas e precisas, 
+        oferecendo foco, controle e confiabilidade.<br><br>
+        <b>Mais eficiência e menos erros em um só lugar!</b>
+        </p>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # Centralizar o botão
+    col1, col2, col3 = st.columns([4.5, 2, 3.5])
     with col2:
-        # LÓGICA 100% ORIGINAL AQUI
         if st.button("Iniciar 🚀"):
             st.session_state.iniciado = True
-            st.rerun() # LINHA ORIGINAL MANTIDA!
+            st.rerun()
+
+else:
+    st.success("✅ Aplicação iniciada com sucesso!")
+
 
 # =========================
 # Resto do app após iniciar
