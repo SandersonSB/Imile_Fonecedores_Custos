@@ -229,7 +229,7 @@ else:
 # =========================
 
     # Nomes das abas com ícones
-    tab1, tab2, tab3 = st.tabs(["📂 Blitz", "🔍 D0", "🔗 Polly"])
+    tab1, tab2, tab3 = st.tabs(["🤝 Fornecedor Blitz", "🤝 Fornecedor D0", "🤝 Fornecedor Polly"])
 
     # -------------------------
     # Aba Blitz
