@@ -258,13 +258,8 @@ else:
             st.success(f"Arquivo {uploaded_file.name} carregado com sucesso!")
 
             lista_temas_mestra = [
-                "FALTA SEM JUSTIFICATIVA",
-                "ABONO DE HORAS",
-                "DECLARAÇÃO DE HORAS",
-                "AJUSTE DE HORAS",
-                "ATESTADO MÉDICO",
-                "FOLGA HABILITADA",
-                "SAÍDA ANTECIPADA"
+                "AJUSTE DE HORAS"
+                
             ]
 
             dados_funcionarios = []
@@ -510,13 +505,7 @@ else:
             # Consolidado final (DEPOIS do merge)
             # =========================
             colunas_remover = [
-                "FALTA SEM JUSTIFICATIVA",
-                "ABONO DE HORAS",
-                "DECLARAÇÃO DE HORAS",
-                "AJUSTE DE HORAS",
-                "ATESTADO MÉDICO",
-                "FOLGA HABILITADA",
-                "SAÍDA ANTECIPADA",
+                "AJUSTE DE HORAS"
             ]
             
 
