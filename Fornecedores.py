@@ -515,17 +515,22 @@ else:
             # =========================
             ##df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on ="cpf", how="outer")
             df_consolidado_final = df_consolidado.copy()
+            colunas_remover = [
+                "FALTA SEM JUSTIFICATIVA",
+                "ABONO DE HORAS",
+                "DECLARAÇÃO DE HORAS",
+                "AJUSTE DE HORAS",
+                "ATESTADO MÉDICO",
+                "FOLGA HABILITADA",
+                "SAÍDA ANTECIPADA",
+            ]
+            
+            # Só remove as colunas que existem no df
             df_consolidado_final = df_consolidado.drop(
-                    columns=[
-                        "FALTA SEM JUSTIFICATIVA",
-                        "ABONO DE HORAS",
-                        "DECLARAÇÃO DE HORAS",
-                        "AJUSTE DE HORAS",
-                        "ATESTADO MÉDICO",
-                        "FOLGA HABILITADA",
-                        "SAÍDA ANTECIPADA",
-                    ]    
-                )
+                columns=[col for col in colunas_remover if col in df_consolidado.columns],
+                errors="ignore"
+            )
+
 
 
             # =========================
