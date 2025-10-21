@@ -480,7 +480,7 @@ else:
             # =========================
             # NOVA REGRA - Folgas marcadas em "previsão" viram Situação = "FOLGA"
             # =========================
-            if "previsão" in df_detalhe.columns:
+            if "previsto" in df_detalhe.columns:
                 # 1️⃣ Se "previsão" contiver "folga", define Situação como "FOLGA"
                 df_detalhe.loc[
                     df_detalhe["previsão"].astype(str).str.lower().str.contains("folga", na=False),
