@@ -478,18 +478,12 @@ else:
             df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
             
             # =========================
-            # NOVA REGRA - Folgas marcadas em "previsão" viram Situação = "FOLGA"
+            # AJUSTE REQUERIDO: Atualiza "Situação" com "previsto" apenas se ela for "Dia não previsto"
             # =========================
             if "previsto" in df_detalhe.columns:
-                # 1️⃣ Se "previsão" contiver "folga", define Situação como "FOLGA"
                 df_detalhe.loc[
-                    df_detalhe["previsto"].astype(str).str.lower().str.contains("folga", na=False),
-                    "Situação"
-                ] = "FOLGA"
-            
-                # 2️⃣ Se "previsão" for diferente de "-", copia o valor da própria coluna para "Situação"
-                df_detalhe.loc[
-                    df_detalhe["previsto"].astype(str).str.strip() != "-",
+                    (df_detalhe["Situação"] == "Dia não previsto") &
+                    (df_detalhe["previsto"].astype(str).str.strip() != "-"),
                     "Situação"
                 ] = df_detalhe["previsto"]
 
