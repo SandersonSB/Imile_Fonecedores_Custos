@@ -491,7 +491,7 @@ else:
                 df_detalhe.loc[
                     df_detalhe["previsto"].astype(str).str.strip() != "-",
                     "Situação"
-                ] = df_detalhe["previsão"]
+                ] = df_detalhe["previsto"]
 
                 
             
