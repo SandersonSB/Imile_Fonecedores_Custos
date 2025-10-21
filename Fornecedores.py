@@ -420,10 +420,10 @@ else:
                     status = "Carga Horaria Incompleta"
                 valores_validacao.append(status)
             df_detalhe["Validação da hora trabalhada"] = valores_validacao
-
+            
             for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                 df_detalhe[col + "_valido"] = df_detalhe[col].apply(lambda x: eh_horario(limpa_valor(x)))
-
+            
             def determinar_situacao(row):
                 valores = [limpa_valor(row.get("ent_1")), limpa_valor(row.get("sai_1")), limpa_valor(row.get("ent_2")), limpa_valor(row.get("sai_2"))]
                 textos = [v for v in valores if v and not eh_horario(v)]
@@ -435,10 +435,10 @@ else:
                 if any(horarios_validos):
                     return "Presença parcial"
                 return "Dia incompleto"
-
+            
             df_detalhe["Situação"] = df_detalhe.apply(determinar_situacao, axis=1)
             df_detalhe.drop(columns=[c for c in ["ent_1_valido", "sai_1_valido", "ent_2_valido", "sai_2_valido"] if c in df_detalhe.columns], inplace=True)
-
+            
             df_incompletos = df_detalhe[df_detalhe["Situação"] == "Dia incompleto"].copy()
             def reavaliar_situacao(row):
                 if eh_horario(limpa_valor(row.get("total_trabalhado"))) and limpa_valor(row.get("total_trabalhado")) != "00:00":
@@ -453,9 +453,9 @@ else:
                 return "Presença parcial"
             if not df_incompletos.empty:
                 df_detalhe.loc[df_incompletos.index, "Situação"] = df_incompletos.apply(reavaliar_situacao, axis=1)
-
+            
             df_detalhe.loc[df_detalhe.get("ent_1", "").astype(str).str.contains("-", na=False), "Situação"] = "Dia não previsto"
-
+            
             def pegar_correcao(row):
                 for col in ["ent_1", "sai_1", "ent_2", "sai_2"]:
                     val = limpa_valor(row.get(col))
@@ -464,7 +464,7 @@ else:
                 return ""
             df_detalhe["correção"] = df_detalhe.apply(pegar_correcao, axis=1)
             df_detalhe.loc[df_detalhe["Situação"].apply(lambda x: eh_horario(str(x))), "Situação"] = df_detalhe["correção"]
-
+            
             def regra_numero_inicio(row):
                 situacao = limpa_valor(row.get("Situação"))
                 if situacao and len(situacao) > 0 and situacao[0].isdigit():
@@ -476,11 +476,29 @@ else:
                         return previsto if previsto else "Dia não previsto"
                 return situacao
             df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
-
+            
+            # =========================
+            # NOVA REGRA - Folgas marcadas em "previsão" viram Situação = "FOLGA"
+            # =========================
+            if "previsão" in df_detalhe.columns:
+                df_detalhe.loc[
+                    df_detalhe["previsão"].astype(str).str.lower().str.contains("folga", na=False),
+                    "Situação"
+                ] = "FOLGA"
+            elif "previsto" in df_detalhe.columns:
+                df_detalhe.loc[
+                    df_detalhe["previsto"].astype(str).str.lower().str.contains("folga", na=False),
+                    "Situação"
+                ] = "FOLGA"
+            
+            # =========================
+            # Contagem final de Situações
+            # =========================
             situacoes_unicas = df_detalhe["Situação"].unique()
             for sit in situacoes_unicas:
                 nome_col = f"Qtd - {sit}"
                 df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
+
 
 
 
