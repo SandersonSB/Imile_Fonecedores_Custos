@@ -471,6 +471,13 @@ else:
                         return previsto if previsto else "Dia não previsto"
                 return situacao
             df_detalhe["Situação"] = df_detalhe.apply(regra_numero_inicio, axis=1)
+
+            # =========================
+            # Padronizar valores da coluna "Situação"
+            # =========================
+            if "Situação" in df_detalhe.columns:
+                df_detalhe["Situação"] = df_detalhe["Situação"].astype(str).str.strip().str.upper()
+
             
             # =========================
             # AJUSTE REQUERIDO: Atualiza "Situação" com "previsto" apenas se ela for "Dia não previsto"
