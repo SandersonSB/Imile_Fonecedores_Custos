@@ -496,35 +496,25 @@ else:
             for sit in situacoes_unicas:
                 nome_col = f"Qtd - {sit}"
                 df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
+            situacoes_unicas = df_consolidado["Situação"].unique()
+            for sit in situacoes_unicas:
+                nome_col = f"Qtd - {sit}"
+                df_consolidado[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())    
 
             # =========================
             # Consolidado final
             # =========================
-            df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on ="cpf", how="left")
-            df_consolidado_final = df.drop(
-                    columns=[col for col in [
-                        "pagina",
-                        "nome",
-                        "cpf",
-                        "data",
-                        "semana",
-                        "previsto",
-                        "ent_1",
-                        "sai_1",
-                        "ent_2",
-                        "sai_2",
-                        "total_trabalhado",
-                        "total_noturno",
-                        "horas_previstas",
-                        "faltas",
-                        "horas_atraso",
-                        "extra_50",
-                        "desconta_dsr",
-                        "Validação da hora trabalhada",
-                        "Situação",
-                        "correção"
-                    ]    if col in df_consolidado_final.columns],
-                    errors="ignore"
+            ##df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on ="cpf", how="outer")
+            df_consolidado_final = df_consolidado.drop(
+                    columns=[
+                        "FALTA SEM JUSTIFICATIVA",
+                        "ABONO DE HORAS",
+                        "DECLARAÇÃO DE HORAS",
+                        "AJUSTE DE HORAS",
+                        "ATESTADO MÉDICO",
+                        "FOLGA HABILITADA",
+                        "SAÍDA ANTECIPADA",
+                    ]    
                 )
 
 
