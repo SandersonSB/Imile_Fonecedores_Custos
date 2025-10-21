@@ -524,7 +524,7 @@ else:
                         "Situação",
                         "correção"
                     ]    if col in df_consolidado_final.columns],
-                         errors="ignore"
+                    errors="ignore"
                 )
 
 
