@@ -497,8 +497,11 @@ else:
                 nome_col = f"Qtd - {sit}"
                 df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
 
-
-
+            # =========================
+            # Consolidado final
+            # =========================
+            df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on "cpf" how "left")
+            df_consolidado_final = df.drop(columns=pagina,nome,cpf,data,semana,previsto,ent_1,sai_1,ent_2,sai_2,total_trabalhado,total_noturno,horas_previstas,faltas,horas_atraso,extra_50,desconta_dsr,Validação da hora trabalhada,Situação,correção)
 
             # =========================
             # Botões de Download
