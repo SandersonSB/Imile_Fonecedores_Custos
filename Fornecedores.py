@@ -502,7 +502,7 @@ else:
             # =========================
             df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on ="cpf", how="left")
             df_consolidado_final = df.drop(
-                    columns=[
+                    columns=[col for col in [
                         "pagina",
                         "nome",
                         "cpf",
