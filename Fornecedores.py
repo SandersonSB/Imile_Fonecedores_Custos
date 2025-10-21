@@ -475,19 +475,20 @@ else:
             # =========================
             # Padronizar valores da coluna "Situação"
             # =========================
+           # Padroniza Situação para MAIÚSCULAS (já no seu código)
             if "Situação" in df_detalhe.columns:
                 df_detalhe["Situação"] = df_detalhe["Situação"].astype(str).str.strip().str.upper()
-
             
-            # =========================
-            # AJUSTE REQUERIDO: Atualiza "Situação" com "previsto" apenas se ela for "Dia não previsto"
-            # =========================
+            # Ajuste requerido — faz a substituição só quando Situação == "DIA NÃO PREVISTO"
+            # e previsto não for vazio/traço. Normaliza o valor de 'previsto' para MAIÚSCULAS.
             if "previsto" in df_detalhe.columns:
-                df_detalhe.loc[
-                    (df_detalhe["Situação"] == "Dia não previsto") &
-                    (df_detalhe["previsto"].astype(str).str.strip() != "-"),
-                    "Situação"
-                ] = df_detalhe["previsto"]
+                mask = (
+                    (df_detalhe["Situação"] == "DIA NÃO PREVISTO") &
+                    (df_detalhe["previsto"].astype(str).str.strip().ne("-")) &
+                    (df_detalhe["previsto"].astype(str).str.strip().ne(""))
+                )
+                df_detalhe.loc[mask, "Situação"] = df_detalhe.loc[mask, "previsto"].astype(str).str.strip().str.upper()
+
 
             # =========================
             # Contagem final de Situações
