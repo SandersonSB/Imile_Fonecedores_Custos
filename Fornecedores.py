@@ -541,7 +541,7 @@ else:
             )
 
             output_consolidado = BytesIO()
-            df_consolidado.to_excel(output_consolidado, index=False)
+            df_consolidado_final.to_excel(output_consolidado, index=False)
             output_consolidado.seek(0)
 
             output_detalhe = BytesIO()
