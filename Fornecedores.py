@@ -492,19 +492,29 @@ else:
             # =========================
             # Contagem final de Situações
             # =========================
-            situacoes_unicas = df_detalhe["Situação"].unique()
-            for sit in situacoes_unicas:
-                nome_col = f"Qtd - {sit}"
-                df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
-            situacoes_unicas = df_consolidado["Situação"].unique()
-            for sit in situacoes_unicas:
-                nome_col = f"Qtd - {sit}"
-                df_consolidado[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())    
+            if "Situação" in df_detalhe.columns:
+                situacoes_unicas = df_detalhe["Situação"].unique()
+                for sit in situacoes_unicas:
+                    nome_col = f"Qtd - {sit}"
+                    df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
+            
+                # Agora só adiciona ao consolidado as contagens, se quiser resumir por CPF
+                df_situacoes = (
+                    df_detalhe.groupby("cpf")["Situação"]
+                    .value_counts()
+                    .unstack(fill_value=0)
+                    .reset_index()
+                )
+            
+                # Faz merge com df_consolidado para juntar essas contagens
+                df_consolidado = pd.merge(df_consolidado, df_situacoes, on="cpf", how="outer")
+    
 
             # =========================
             # Consolidado final
             # =========================
             ##df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on ="cpf", how="outer")
+            df_consolidado_final = df_consolidado.copy()
             df_consolidado_final = df_consolidado.drop(
                     columns=[
                         "FALTA SEM JUSTIFICATIVA",
