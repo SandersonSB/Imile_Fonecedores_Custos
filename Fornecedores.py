@@ -483,13 +483,13 @@ else:
             if "previsto" in df_detalhe.columns:
                 # 1️⃣ Se "previsão" contiver "folga", define Situação como "FOLGA"
                 df_detalhe.loc[
-                    df_detalhe["previsão"].astype(str).str.lower().str.contains("folga", na=False),
+                    df_detalhe["previsto"].astype(str).str.lower().str.contains("folga", na=False),
                     "Situação"
                 ] = "FOLGA"
             
                 # 2️⃣ Se "previsão" for diferente de "-", copia o valor da própria coluna para "Situação"
                 df_detalhe.loc[
-                    df_detalhe["previsão"].astype(str).str.strip() != "-",
+                    df_detalhe["previsto"].astype(str).str.strip() != "-",
                     "Situação"
                 ] = df_detalhe["previsão"]
 
