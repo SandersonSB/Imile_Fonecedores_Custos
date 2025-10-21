@@ -488,10 +488,27 @@ else:
                 ] = df_detalhe["previsto"]
 
             # =========================
-            # Consolidado final
+            # Contagem final de Situações
             # =========================
-            ##df_consolidado_final = pd.merge(df_consolidado, df_detalhe, on ="cpf", how="outer")
-            df_consolidado_final = df_consolidado.copy()
+            if "Situação" in df_detalhe.columns:
+                situacoes_unicas = df_detalhe["Situação"].unique()
+                for sit in situacoes_unicas:
+                    nome_col = f"Qtd - {sit}"
+                    df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
+            
+                df_situacoes = (
+                    df_detalhe.groupby("cpf")["Situação"]
+                    .value_counts()
+                    .unstack(fill_value=0)
+                    .reset_index()
+                )
+            
+                # Faz o merge primeiro!
+                df_consolidado = pd.merge(df_consolidado, df_situacoes, on="cpf", how="outer")
+            
+            # =========================
+            # Consolidado final (DEPOIS do merge)
+            # =========================
             colunas_remover = [
                 "FALTA SEM JUSTIFICATIVA",
                 "ABONO DE HORAS",
@@ -502,32 +519,15 @@ else:
                 "SAÍDA ANTECIPADA",
             ]
             
-            # Só remove as colunas que existem no df
+
             df_consolidado_final = df_consolidado.drop(
-                columns=[col for col in colunas_remover if col in df_consolidado.columns],
+                columns=[
+                    col for col in colunas_remover
+                    if col in df_consolidado.columns and not col.startswith("Qtd -")
+                ],
                 errors="ignore"
             )
-                
-            
-            # =========================
-            # Contagem final de Situações
-            # =========================
-            if "Situação" in df_detalhe.columns:
-                situacoes_unicas = df_detalhe["Situação"].unique()
-                for sit in situacoes_unicas:
-                    nome_col = f"Qtd - {sit}"
-                    df_detalhe[nome_col] = df_detalhe.groupby("cpf")["Situação"].transform(lambda x: (x == sit).sum())
-            
-                # Agora só adiciona ao consolidado as contagens, se quiser resumir por CPF
-                df_situacoes = (
-                    df_detalhe.groupby("cpf")["Situação"]
-                    .value_counts()
-                    .unstack(fill_value=0)
-                    .reset_index()
-                )
-            
-                # Faz merge com df_consolidado para juntar essas contagens
-                df_consolidado = pd.merge(df_consolidado, df_situacoes, on="cpf", how="outer")
+
     
 
 
