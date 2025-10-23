@@ -582,14 +582,17 @@ else:
         # Opção para o usuário escolher qual link mostrar
         opcao_link = st.radio(
             "Escolha qual link deseja visualizar:",
-            ["FIXOS - "PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS", "DESLIGADOS OU OUTRO -  PADRÃO DE PDF QUE NÃO TEM O TOTAL"],
+            [
+                'FIXOS - PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS',
+                'DESLIGADOS OU OUTRO - PADRÃO DE PDF QUE NÃO TEM O TOTAL'
+            ],
             horizontal=True
         )
     
         # Dicionário com os links
         links = {
-            "FIXOS - "PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS": "https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#",
-            "DESLIGADOS OU OUTRO -  PADRÃO DE PDF QUE NÃO TEM O TOTAL": "https://colab.research.google.com/drive/1ABCDEF5tZwzJcZwZj5nJcxZNmN50qXYZ#"  # exemplo
+            'FIXOS - PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS': "https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#",
+            'DESLIGADOS OU OUTRO - PADRÃO DE PDF QUE NÃO TEM O TOTAL': "https://colab.research.google.com/drive/1ABCDEF5tZwzJcZwZj5nJcxZNmN50qXYZ#"  # exemplo
         }
     
         # Exibir o link correspondente
