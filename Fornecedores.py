@@ -592,7 +592,7 @@ else:
         # Dicionário com os links
         links = {
             'FIXOS - PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS': "https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#",
-            'DESLIGADOS OU OUTRO - PADRÃO DE PDF QUE NÃO TEM O TOTAL': "https://colab.research.google.com/drive/1ABCDEF5tZwzJcZwZj5nJcxZNmN50qXYZ#"  # exemplo
+            'DESLIGADOS OU OUTRO - PADRÃO DE PDF QUE NÃO TEM O TOTAL': "https://colab.research.google.com/drive/1XuAET4xelIjGibaiSt8L13vpssA6FWIW?usp=sharing"  # exemplo
         }
     
         # Exibir o link correspondente
