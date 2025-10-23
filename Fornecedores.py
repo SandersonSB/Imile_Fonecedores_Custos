@@ -577,7 +577,31 @@ else:
     # Aba Polly (LÓGICA 100% ORIGINAL)
     # -------------------------
     with tab3:
-        st.markdown('<div class="card"><h2>🔗 Aba Polly</h2><p>Acesse o notebook do Google Colab clicando no link abaixo:</p><p><a href="https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#" target="_blank">Abrir notebook Colab</a></p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><h2>🔗 Aba Polly</h2>', unsafe_allow_html=True)
+        
+        # Opção para o usuário escolher qual link mostrar
+        opcao_link = st.radio(
+            "Escolha qual link deseja visualizar:",
+            ["FIXOS - "PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS", "DESLIGADOS OU OUTRO -  PADRÃO DE PDF QUE NÃO TEM O TOTAL"],
+            horizontal=True
+        )
+    
+        # Dicionário com os links
+        links = {
+            "FIXOS - "PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS": "https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#",
+            "DESLIGADOS OU OUTRO -  PADRÃO DE PDF QUE NÃO TEM O TOTAL": "https://colab.research.google.com/drive/1ABCDEF5tZwzJcZwZj5nJcxZNmN50qXYZ#"  # exemplo
+        }
+    
+        # Exibir o link correspondente
+        st.markdown(
+            f"""
+            <p>Acesse o notebook do Google Colab clicando no link abaixo:</p>
+            <p><a href="{links[opcao_link]}" target="_blank">Abrir {opcao_link} no Colab</a></p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
 
 # =========================
 # Footer elegante e estilizado
