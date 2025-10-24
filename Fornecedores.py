@@ -577,29 +577,73 @@ else:
     # Aba Polly (LÓGICA 100% ORIGINAL)
     # -------------------------
     with tab3:
-        st.markdown('<div class="card"><h2>🔗 Aba Polly</h2>', unsafe_allow_html=True)
-        
-        # Opção para o usuário escolher qual link mostrar
+    # ======= Estilo do Card (HTML + CSS inline elegante) =======
+        st.markdown("""
+            <style>
+            .card {
+                background-color: #1E1E1E;
+                color: #EAEAEA;
+                border-radius: 15px;
+                box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+                padding: 30px;
+                margin-top: 20px;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            .card h2 {
+                color: #00BFFF;
+                font-size: 28px;
+                margin-bottom: 10px;
+            }
+            .card p {
+                font-size: 16px;
+                color: #CCCCCC;
+            }
+            .radio-label {
+                color: #EAEAEA !important;
+            }
+            .link-button {
+                display: inline-block;
+                background-color: #00BFFF;
+                color: white !important;
+                padding: 10px 18px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 500;
+                margin-top: 10px;
+                transition: all 0.3s ease;
+            }
+            .link-button:hover {
+                background-color: #0099CC;
+                transform: translateY(-2px);
+            }
+            </style>
+        """, unsafe_allow_html=True)
+    
+        # ======= Card de Seleção =======
+        st.markdown('<div class="card"><h2>🔗 Aba Polly</h2><p>Escolha abaixo qual tipo de relatório deseja abrir no Google Colab:</p>', unsafe_allow_html=True)
+    
         opcao_link = st.radio(
-            "Escolha qual link deseja visualizar:",
+            "Selecione o padrão de relatório:",
             [
-                'FIXOS - PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS',
-                'DESLIGADOS OU OUTRO - PADRÃO DE PDF QUE NÃO TEM O TOTAL'
+                '📘 FIXOS - PDF com total de dias trabalhados',
+                '📕 DESLIGADOS / OUTROS - PDF sem total de dias trabalhados'
             ],
-            horizontal=True
+            horizontal=True,
+            key="radio_polly"
         )
     
-        # Dicionário com os links
+        # ======= Dicionário de Links =======
         links = {
-            'FIXOS - PADRÃO DE PDF QUE TEM O TOTAL DE DIAS TRABALHADOS': "https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#",
-            'DESLIGADOS OU OUTRO - PADRÃO DE PDF QUE NÃO TEM O TOTAL': "https://colab.research.google.com/drive/1XuAET4xelIjGibaiSt8L13vpssA6FWIW?usp=drive_link"  # exemplo
+            '📘 FIXOS - PDF com total de dias trabalhados': "https://colab.research.google.com/drive/1F17LHH5tZwzJcZwZj5nJcxZNmN50qFXY#",
+            '📕 DESLIGADOS / OUTROS - PDF sem total de dias trabalhados': "https://colab.research.google.com/drive/1XuAET4xelIjGibaiSt8L13vpssA6FWIW?usp=drive_link"
         }
     
-        # Exibir o link correspondente
+        # ======= Exibição do Link =======
         st.markdown(
             f"""
-            <p>Acesse o notebook do Google Colab clicando no link abaixo:</p>
-            <p><a href="{links[opcao_link]}" target="_blank">Abrir {opcao_link} no Colab</a></p>
+            <p>Clique abaixo para abrir o notebook correspondente:</p>
+            <a class="link-button" href="{links[opcao_link]}" target="_blank">🚀 Abrir {opcao_link} no Colab</a>
             </div>
             """,
             unsafe_allow_html=True
