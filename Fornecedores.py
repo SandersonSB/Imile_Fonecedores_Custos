@@ -177,14 +177,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-import streamlit as st
-
-import streamlit as st
-
-import streamlit as st
-
-import streamlit as st
-
 # =========================
 # SIDEBAR (Configurações)
 # =========================
@@ -200,23 +192,52 @@ empresa_selecionada = st.sidebar.radio(
 )
 
 # =========================
-# CONTROLE DE POP-UP VIA SESSION_STATE
+# CONTROLE DO POP-UP (TELA BLOQUEADA)
 # =========================
-if "abrir_modal" not in st.session_state:
-    st.session_state.abrir_modal = False
+if "mostrar_regra" not in st.session_state:
+    st.session_state.mostrar_regra = False
 
-# Botão aparece apenas quando há empresa selecionada
+# Se uma empresa for selecionada, ativa o "modo regra"
 if empresa_selecionada != "Sem Informações":
-    if st.sidebar.button(f"🔍 Abrir regra de {empresa_selecionada}"):
-        st.session_state.abrir_modal = True
+    st.session_state.mostrar_regra = True
+else:
+    st.session_state.mostrar_regra = False
 
-# Botão para fechar o “modal”
-if st.session_state.abrir_modal:
-    st.markdown(f"### 📄 Regras de Negócio - {empresa_selecionada}")
-    st.markdown("---")
+# =========================
+# EXIBE O POP-UP (REGRA DE NEGÓCIO)
+# =========================
+if st.session_state.mostrar_regra:
+
+    # Fundo esmaecido (simulação de tela bloqueada)
+    st.markdown(
+        """
+        <style>
+        [data-testid="stAppViewContainer"] {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        .popup {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.3);
+            width: 85%;
+            margin: 80px auto;
+        }
+        .fechar-btn {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Conteúdo do pop-up
+    st.markdown(f"<div class='popup'>", unsafe_allow_html=True)
+    st.markdown(f"### 📄 Regras de Negócio – {empresa_selecionada}")
 
     if empresa_selecionada == "Blitz":
-        st.subheader("Fornecedor Blitz")
         st.markdown("""
 **Contexto:**  
 O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, considerando os dias trabalhados no mês, ajustando para folgas e feriados. Possibilidade de ajuste proporcional por hora em casos de jornadas parciais.
@@ -238,7 +259,6 @@ O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, consid
 """)
 
     elif empresa_selecionada == "D0":
-        st.subheader("Fornecedor D0")
         st.markdown("""
 **Contexto:**  
 O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos trabalhados. Ajustes proporcionais por hora podem ser aplicados em jornadas parciais.
@@ -260,7 +280,6 @@ O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos 
 """)
 
     elif empresa_selecionada == "Polly":
-        st.subheader("Colaboradora Polly")
         st.markdown("""
 **Contexto:**  
 Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento proporcional por hora é avaliado apenas em casos de jornadas parciais.
@@ -281,9 +300,17 @@ Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento p
 - Pagamento diário, proporcional por hora apenas em casos especiais.
 """)
 
-    st.markdown("---")
+    # Botão de fechar (volta ao modo normal)
+    st.markdown("<div class='fechar-btn'>", unsafe_allow_html=True)
     if st.button("❌ Fechar"):
-        st.session_state.abrir_modal = False
+        st.session_state.mostrar_regra = False
+        st.rerun()
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+else:
+    # Quando nada está selecionado, mostra o conteúdo normal do site
+    st.title("📊 Página Principal do Sistema")
+    st.write("Selecione uma empresa na barra lateral para visualizar sua regra de negócio.")
 
 
 
