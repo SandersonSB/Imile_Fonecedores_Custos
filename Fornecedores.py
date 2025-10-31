@@ -177,6 +177,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+import streamlit as st
+
 # =========================
 # SIDEBAR (ABA LATERAL DE CONFIGURAÇÕES)
 # =========================
@@ -185,17 +187,97 @@ st.sidebar.markdown("""
 Esta seção permite ajustar regras de pagamento e preferências de análise.
 """)
 
+# Seleção do tipo de relatório
 tipo_relatorio = st.sidebar.selectbox(
     "Tipo de Relatório",
     ["Consolidado", "Detalhado", "Ambos"]
 )
 
+# Seleção do modo de validação
 modo_validacao = st.sidebar.radio(
     "Modo de Validação",
     ["Automático", "Manual"]
 )
 
+# Botão para salvar configurações
 st.sidebar.button("💾 Salvar Configurações")
+
+# =========================
+# SEÇÃO PRINCIPAL: REGRAS DE NEGÓCIO POR EMPRESA
+# =========================
+st.title("📄 Regras de Negócio por Empresa")
+st.markdown("Clique na empresa para visualizar a regra de negócio detalhada:")
+
+# Criação de pastas clicáveis usando expanders
+with st.expander("Blitz"):
+    st.subheader("Fornecedor Blitz")
+    st.markdown("""
+**Contexto:**  
+O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, considerando os dias trabalhados no mês, ajustando para folgas e feriados. Há possibilidade de ajuste proporcional por hora em casos de jornadas parciais.
+
+**Cálculo de Custos:**  
+- Valor da diária: definido pelo contrato do colaborador (T1, T2 ou T3).  
+- Dias efetivos: dias do contrato menos folgas e feriados.  
+- Custo total: valor da diária x dias efetivos.
+
+**Exemplo – Polly (Blitz)**  
+| Contrato | Valor da diária | Dias do contrato | Dias efetivos | Custo total |
+|----------|----------------|----------------|---------------|------------|
+| T1       | R$ 183,84      | 26             | 10            | R$ 1.838,42 |
+| T2       | R$ 187,65      | 26             | 26            | R$ 4.878,89 |
+| T3       | R$ 265,63      | 26             | 24            | R$ 6.375,18 |
+
+**Observações:**  
+- Pagamento por dia, sem proporcional de horas, exceto em casos especiais.  
+- Revisar contratos específicos para cobrança proporcional, se necessário.
+""")
+
+with st.expander("D0"):
+    st.subheader("Fornecedor D0")
+    st.markdown("""
+**Contexto:**  
+O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos trabalhados. Ajustes proporcionais por hora podem ser aplicados em jornadas parciais.
+
+**Cálculo de Custos:**  
+- Valor da diária: definido pelo contrato (T1, T2 ou T3).  
+- Dias efetivos: dias do contrato menos folgas e feriados.  
+- Custo total: valor da diária x dias efetivos.
+
+**Exemplo – Colaborador D0**  
+| Contrato | Valor da diária | Dias do contrato | Dias efetivos | Custo total |
+|----------|----------------|----------------|---------------|------------|
+| T1       | R$ 181,97      | 26             | 5             | R$ 909,85 |
+| T2       | R$ 181,97      | 26             | 20            | R$ 3.639,39 |
+| T3       | R$ 213,42      | 26             | 26            | R$ 5.548,79 |
+
+**Observações:**  
+- Pagamento por dia.  
+- Possibilidade de ajuste proporcional por hora quando a jornada não é completa.
+""")
+
+with st.expander("Polly"):
+    st.subheader("Colaboradora Polly")
+    st.markdown("""
+**Contexto:**  
+Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento proporcional por hora é avaliado apenas em casos de jornadas parciais.
+
+**Cálculo de Custos:**  
+- Valor da diária: conforme contrato (T1, T2 ou T3).  
+- Dias efetivos: dias do contrato menos folgas e feriados.  
+- Custo total: valor da diária x dias efetivos.
+
+**Exemplo – Polly**  
+| Contrato | Valor da diária | Dias do contrato | Dias efetivos | Custo total |
+|----------|----------------|----------------|---------------|------------|
+| T1       | R$ 183,84      | 26             | 10            | R$ 1.838,42 |
+| T2       | R$ 187,65      | 26             | 26            | R$ 4.878,89 |
+| T3       | R$ 265,63      | 26             | 24            | R$ 6.375,18 |
+
+**Observações:**  
+- Pagamento diário.  
+- Ajuste proporcional por hora somente em casos especiais.
+""")
+
 
 # =========================
 # Tela Inicial (antes de iniciar)
