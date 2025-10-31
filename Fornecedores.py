@@ -183,37 +183,33 @@ import streamlit as st
 
 import streamlit as st
 
+import streamlit as st
+
 # =========================
-# SIDEBAR (ABA LATERAL DE CONFIGURAÇÕES)
+# SIDEBAR (Configurações)
 # =========================
 st.sidebar.title("⚙️ Regra de Negócio")
-st.sidebar.markdown("""
-Esta seção permite ajustar regras de pagamento e preferências de análise.
-""")
-
+st.sidebar.markdown("Esta seção permite visualizar a regra de negócio de cada empresa.")
 
 st.sidebar.markdown("---")
 
-# =========================
-# SEÇÃO EMPRESAS NA SIDEBAR
-# =========================
 st.sidebar.subheader("📂 Seleção de Empresa")
-
-# O valor padrão é "Sem Informações"
 empresa_selecionada = st.sidebar.radio(
     "Clique na empresa para ver a regra de negócio:",
     ["Sem Informações", "Blitz", "D0", "Polly"],
-    index=0  # já vem marcado "Sem Informações"
+    index=0  # "Sem Informações" já vem marcado
 )
 
 # =========================
-# ÁREA PRINCIPAL – EXIBIÇÃO DE TEXTO
+# POP-UP / MODAL COM TEXTO COMPLETO
 # =========================
-st.title("📄 Regras de Negócio da Empresa Selecionada")
-
-if empresa_selecionada == "Blitz":
-    st.subheader("Fornecedor Blitz")
-    st.markdown("""
+if empresa_selecionada != "Sem Informações":
+    # Botão para abrir modal
+    if st.sidebar.button(f"🔍 Abrir regra de {empresa_selecionada}"):
+        with st.modal(f"📄 Regras de Negócio - {empresa_selecionada}"):
+            if empresa_selecionada == "Blitz":
+                st.subheader("Fornecedor Blitz")
+                st.markdown("""
 **Contexto:**  
 O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, considerando os dias trabalhados no mês, ajustando para folgas e feriados. Possibilidade de ajuste proporcional por hora em casos de jornadas parciais.
 
@@ -232,10 +228,9 @@ O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, consid
 **Observações:**  
 - Pagamento diário, proporcional por hora apenas em casos especiais.
 """)
-
-elif empresa_selecionada == "D0":
-    st.subheader("Fornecedor D0")
-    st.markdown("""
+            elif empresa_selecionada == "D0":
+                st.subheader("Fornecedor D0")
+                st.markdown("""
 **Contexto:**  
 O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos trabalhados. Ajustes proporcionais por hora podem ser aplicados em jornadas parciais.
 
@@ -254,10 +249,9 @@ O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos 
 **Observações:**  
 - Pagamento diário, proporcional por hora em casos especiais.
 """)
-
-elif empresa_selecionada == "Polly":
-    st.subheader("Colaboradora Polly")
-    st.markdown("""
+            elif empresa_selecionada == "Polly":
+                st.subheader("Colaboradora Polly")
+                st.markdown("""
 **Contexto:**  
 Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento proporcional por hora é avaliado apenas em casos de jornadas parciais.
 
@@ -276,10 +270,6 @@ Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento p
 **Observações:**  
 - Pagamento diário, proporcional por hora apenas em casos especiais.
 """)
-
-# Se estiver selecionado "Sem Informações", não exibe nada
-else:
-    st.info("Nenhuma informação selecionada.")
 
 
 
