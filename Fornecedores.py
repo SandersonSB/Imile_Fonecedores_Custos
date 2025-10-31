@@ -181,25 +181,16 @@ import streamlit as st
 
 import streamlit as st
 
+import streamlit as st
+
 # =========================
 # SIDEBAR (ABA LATERAL DE CONFIGURAÇÕES)
 # =========================
-st.sidebar.title("⚙️ Configurações")
+st.sidebar.title("⚙️ Regra de Negócio")
 st.sidebar.markdown("""
 Esta seção permite ajustar regras de pagamento e preferências de análise.
 """)
 
-# Seleção do tipo de relatório
-tipo_relatorio = st.sidebar.selectbox(
-    "Tipo de Relatório",
-    ["Consolidado", "Detalhado", "Ambos"]
-)
-
-# Seleção do modo de validação
-modo_validacao = st.sidebar.radio(
-    "Modo de Validação",
-    ["Automático", "Manual"]
-)
 
 st.sidebar.markdown("---")
 
@@ -207,9 +198,12 @@ st.sidebar.markdown("---")
 # SEÇÃO EMPRESAS NA SIDEBAR
 # =========================
 st.sidebar.subheader("📂 Seleção de Empresa")
+
+# O valor padrão é "Sem Informações"
 empresa_selecionada = st.sidebar.radio(
     "Clique na empresa para ver a regra de negócio:",
-    ["Blitz", "D0", "Polly"]
+    ["Sem Informações", "Blitz", "D0", "Polly"],
+    index=0  # já vem marcado "Sem Informações"
 )
 
 # =========================
@@ -282,6 +276,10 @@ Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento p
 **Observações:**  
 - Pagamento diário, proporcional por hora apenas em casos especiais.
 """)
+
+# Se estiver selecionado "Sem Informações", não exibe nada
+else:
+    st.info("Nenhuma informação selecionada.")
 
 
 
