@@ -179,6 +179,8 @@ st.markdown("""
 
 import streamlit as st
 
+import streamlit as st
+
 # =========================
 # SIDEBAR (ABA LATERAL DE CONFIGURAÇÕES)
 # =========================
@@ -199,26 +201,32 @@ modo_validacao = st.sidebar.radio(
     ["Automático", "Manual"]
 )
 
-# Botão para salvar configurações
-st.sidebar.button("💾 Salvar Configurações")
+st.sidebar.markdown("---")
 
 # =========================
-# SEÇÃO PRINCIPAL: REGRAS DE NEGÓCIO POR EMPRESA
+# SEÇÃO EMPRESAS NA SIDEBAR
 # =========================
-st.title("📄 Regras de Negócio por Empresa")
-st.markdown("Clique na empresa para visualizar a regra de negócio detalhada:")
+st.sidebar.subheader("📂 Seleção de Empresa")
+empresa_selecionada = st.sidebar.radio(
+    "Clique na empresa para ver a regra de negócio:",
+    ["Blitz", "D0", "Polly"]
+)
 
-# Criação de pastas clicáveis usando expanders
-with st.expander("Blitz"):
+# =========================
+# ÁREA PRINCIPAL – EXIBIÇÃO DE TEXTO
+# =========================
+st.title("📄 Regras de Negócio da Empresa Selecionada")
+
+if empresa_selecionada == "Blitz":
     st.subheader("Fornecedor Blitz")
     st.markdown("""
 **Contexto:**  
-O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, considerando os dias trabalhados no mês, ajustando para folgas e feriados. Há possibilidade de ajuste proporcional por hora em casos de jornadas parciais.
+O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, considerando os dias trabalhados no mês, ajustando para folgas e feriados. Possibilidade de ajuste proporcional por hora em casos de jornadas parciais.
 
 **Cálculo de Custos:**  
-- Valor da diária: definido pelo contrato do colaborador (T1, T2 ou T3).  
-- Dias efetivos: dias do contrato menos folgas e feriados.  
-- Custo total: valor da diária x dias efetivos.
+- Valor da diária: definido pelo contrato (T1, T2 ou T3)  
+- Dias efetivos: dias do contrato menos folgas e feriados  
+- Custo total: valor da diária x dias efetivos
 
 **Exemplo – Polly (Blitz)**  
 | Contrato | Valor da diária | Dias do contrato | Dias efetivos | Custo total |
@@ -228,20 +236,19 @@ O fornecedor Blitz realiza o pagamento de colaboradores por diária fixa, consid
 | T3       | R$ 265,63      | 26             | 24            | R$ 6.375,18 |
 
 **Observações:**  
-- Pagamento por dia, sem proporcional de horas, exceto em casos especiais.  
-- Revisar contratos específicos para cobrança proporcional, se necessário.
+- Pagamento diário, proporcional por hora apenas em casos especiais.
 """)
 
-with st.expander("D0"):
+elif empresa_selecionada == "D0":
     st.subheader("Fornecedor D0")
     st.markdown("""
 **Contexto:**  
 O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos trabalhados. Ajustes proporcionais por hora podem ser aplicados em jornadas parciais.
 
 **Cálculo de Custos:**  
-- Valor da diária: definido pelo contrato (T1, T2 ou T3).  
-- Dias efetivos: dias do contrato menos folgas e feriados.  
-- Custo total: valor da diária x dias efetivos.
+- Valor da diária: definido pelo contrato (T1, T2 ou T3)  
+- Dias efetivos: dias do contrato menos folgas e feriados  
+- Custo total: valor da diária x dias efetivos
 
 **Exemplo – Colaborador D0**  
 | Contrato | Valor da diária | Dias do contrato | Dias efetivos | Custo total |
@@ -251,20 +258,19 @@ O fornecedor D0 paga colaboradores por diária fixa, considerando dias efetivos 
 | T3       | R$ 213,42      | 26             | 26            | R$ 5.548,79 |
 
 **Observações:**  
-- Pagamento por dia.  
-- Possibilidade de ajuste proporcional por hora quando a jornada não é completa.
+- Pagamento diário, proporcional por hora em casos especiais.
 """)
 
-with st.expander("Polly"):
+elif empresa_selecionada == "Polly":
     st.subheader("Colaboradora Polly")
     st.markdown("""
 **Contexto:**  
 Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento proporcional por hora é avaliado apenas em casos de jornadas parciais.
 
 **Cálculo de Custos:**  
-- Valor da diária: conforme contrato (T1, T2 ou T3).  
-- Dias efetivos: dias do contrato menos folgas e feriados.  
-- Custo total: valor da diária x dias efetivos.
+- Valor da diária: conforme contrato (T1, T2 ou T3)  
+- Dias efetivos: dias do contrato menos folgas e feriados  
+- Custo total: valor da diária x dias efetivos
 
 **Exemplo – Polly**  
 | Contrato | Valor da diária | Dias do contrato | Dias efetivos | Custo total |
@@ -274,9 +280,9 @@ Polly é paga por diária fixa, com ajuste para folgas e feriados. O pagamento p
 | T3       | R$ 265,63      | 26             | 24            | R$ 6.375,18 |
 
 **Observações:**  
-- Pagamento diário.  
-- Ajuste proporcional por hora somente em casos especiais.
+- Pagamento diário, proporcional por hora apenas em casos especiais.
 """)
+
 
 
 # =========================
